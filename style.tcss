@@ -1,0 +1,10 @@
+#menu {
+    width: 36;
+    border: round cyan;
+    padding: 1 2;
+}
+
+#log {
+    border: round yellow;
+    padding: 0 1;
+}
