@@ -6,17 +6,6 @@ from textual.widgets import Footer, Header, RichLog, Static
 
 from config import load_config
 
-MENU_TEXT = """[b]Scripts[/b]
-
-1) Script 1
-2) Script 2
-3) Script 3
-
-[b]Other[/b]
-
-C) Clear log
-Q) Quit"""
-
 
 class PowerScriptApp(App):
     TITLE = "Power Script"
@@ -29,10 +18,21 @@ class PowerScriptApp(App):
         ("q", "quit", "Quit"),
     ]
 
+    def build_menu_text(self) -> str:
+        scripts = load_config()["scripts"]
+        lines = []
+        for number, entry in enumerate(scripts, start=1):
+            lines.append(f"{number}) {entry['name']}")
+        script_block = "\n".join(lines)
+        return (
+            f"[b]Scripts[/b]\n\n{script_block}\n\n"
+            "[b]Other[/b]\n\nC) Clear log\nQ) Quit"
+        )
+
     def compose(self) -> ComposeResult:
         yield Header()
         with Horizontal():
-            yield Static(MENU_TEXT, id="menu")
+            yield Static(self.build_menu_text(), id="menu")
             yield RichLog(id="log", markup=True)
         yield Footer()
 
@@ -54,5 +54,4 @@ class PowerScriptApp(App):
 
 
 if __name__ == "__main__":
-    print(load_config())
     PowerScriptApp().run()
