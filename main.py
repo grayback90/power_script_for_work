@@ -4,6 +4,8 @@ from textual.app import App, ComposeResult
 from textual.containers import Horizontal
 from textual.widgets import Footer, Header, RichLog, Static
 
+from config import load_config
+
 MENU_TEXT = """[b]Scripts[/b]
 
 1) Script 1
@@ -52,4 +54,5 @@ class PowerScriptApp(App):
 
 
 if __name__ == "__main__":
+    print(load_config())
     PowerScriptApp().run()
