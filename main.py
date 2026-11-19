@@ -1,5 +1,5 @@
 
-# Importiert datetime, um Zeitstempel für unsere Log-Ausgaben zu erzeugen.
+# Importiert datetime für die Zeitstempel im Log.
 from datetime import datetime
 
 # Importiert die benötigten Bestandteile von Textual.
@@ -7,8 +7,11 @@ from textual.app import App, ComposeResult
 from textual.containers import Horizontal
 from textual.widgets import Footer, Header, RichLog, Static
 
-# Importiert unsere Funktion zum Laden der Konfiguration.
+# Importiert unsere Konfigurationsverwaltung.
 from config import load_config
+
+# Importiert die neue Skriptverwaltung.
+from core.script_manager import ScriptManager
 
 
 class PowerScriptApp(App):
@@ -20,43 +23,44 @@ class PowerScriptApp(App):
     # Zusatzinformation oben rechts.
     SUB_TITLE = "Script Manager"
 
-    # Verwendet unsere externe CSS-Datei für das Layout.
+    # Verwendet unsere externe CSS-Datei.
     CSS_PATH = "style.tcss"
 
-    # Definiert die Tastenkombination zum Beenden.
+    # Tastenkombinationen der Anwendung.
     BINDINGS = [
         ("q", "quit", "Quit"),
         ("c", "clear_log", "Clear log"),
     ]
 
     def __init__(self):
-        """Initialisiert die Anwendung und lädt die Skriptkonfiguration."""
+        """Initialisiert die Anwendung."""
 
-        # Initialisiert zunächst die übergeordnete Textual-App.
+        # Initialisiert zuerst die Textual-App.
         super().__init__()
 
-        # Lädt alle Skripte aus der config.toml.
+        # Lädt die Konfiguration.
         self.config = load_config()
 
-        # Speichert die Skriptliste für den späteren Zugriff.
+        # Speichert die konfigurierten Skripte.
         self.scripts = self.config["scripts"]
 
-    def build_menu_text(self) -> str:
-        """Erstellt den Menütext anhand der konfigurierten Skripte."""
+        # Erstellt die Verwaltung für unsere Hintergrundprozesse.
+        self.script_manager = ScriptManager()
 
-        # Hier sammeln wir die einzelnen Menüeinträge.
+    def build_menu_text(self) -> str:
+        """Erstellt das Menü anhand der Konfiguration."""
+
+        # Hier sammeln wir die Menüeinträge.
         lines = []
 
-        # Geht alle Skripte durch und nummeriert sie ab 1.
+        # Geht alle Skripte durch und nummeriert sie.
         for number, script in enumerate(self.scripts, start=1):
-
-            # Erstellt einen Menüeintrag mit Nummer und Skriptname.
             lines.append(f"{number}) {script['name']}")
 
-        # Verbindet alle Einträge mit Zeilenumbrüchen.
+        # Verbindet alle Einträge zu einem Text.
         script_block = "\n".join(lines)
 
-        # Baut den vollständigen Menütext zusammen.
+        # Erstellt den vollständigen Menütext.
         return (
             f"[b]Scripts[/b]\n\n{script_block}\n\n"
             "[b]Other[/b]\n\nC) Clear log\nQ) Quit"
@@ -65,44 +69,72 @@ class PowerScriptApp(App):
     def compose(self) -> ComposeResult:
         """Erstellt die sichtbaren Elemente der Anwendung."""
 
-        # Zeichnet die obere Kopfzeile.
+        # Erstellt die Kopfzeile.
         yield Header()
 
-        # Ordnet Menü und Log-Fenster horizontal nebeneinander an.
+        # Ordnet Menü und Log nebeneinander an.
         with Horizontal():
 
-            # Erstellt das Menü mit den dynamischen Skripteinträgen.
+            # Erstellt das dynamische Menü.
             yield Static(self.build_menu_text(), id="menu")
 
-            # Erstellt das Log-Fenster für spätere Skriptausgaben.
+            # Erstellt das Log-Fenster.
             yield RichLog(id="log", markup=True)
 
-        # Zeichnet die untere Fußzeile.
+        # Erstellt die Fußzeile.
         yield Footer()
 
     def on_mount(self) -> None:
-        """Wird aufgerufen, sobald die Oberfläche fertig aufgebaut ist."""
+        """Wird nach dem Aufbau der Oberfläche ausgeführt."""
 
-        # Setzt den Titel des Menürahmens.
+        # Setzt den Rahmen-Titel des Menüs.
         self.query_one("#menu").border_title = "Menu"
 
-        # Setzt den Titel des Lograhmens.
+        # Setzt den Rahmen-Titel des Logs.
         self.query_one("#log").border_title = "Log"
 
-        # Schreibt eine Startmeldung in das Log.
+        # Schreibt eine Startmeldung.
         self.write_log("SYSTEM", "Initialization finished")
 
+        # Prüft alle 0,1 Sekunden auf neue Prozessmeldungen.
+        self.set_interval(0.1, self.check_process_messages)
+
     def write_log(self, source: str, message: str) -> None:
-        """Schreibt eine formatierte Nachricht in das Log-Fenster."""
+        """Schreibt eine formatierte Nachricht ins Log."""
 
         # Ermittelt die aktuelle Uhrzeit.
         time = datetime.now().strftime("%H:%M:%S")
 
-        # Erstellt eine formatierte Logzeile.
+        # Erstellt die formatierte Logzeile.
         line = f"[dim]{time}[/dim] | [cyan]{source:<8}[/cyan] | {message}"
 
-        # Schreibt die Zeile in das sichtbare Log-Fenster.
+        # Schreibt die Nachricht in das Log-Fenster.
         self.query_one("#log", RichLog).write(line)
+
+    def check_process_messages(self) -> None:
+        """Holt neue Nachrichten aus der Prozessverwaltung ab."""
+
+        # Fragt alle aktuell verfügbaren Nachrichten ab.
+        messages = self.script_manager.get_messages()
+
+        # Verarbeitet jede Nachricht einzeln.
+        for message_type, name, message in messages:
+
+            # Normale Skriptausgabe.
+            if message_type == "output":
+                self.write_log(name, message)
+
+            # Erfolgreicher Start eines Skripts.
+            elif message_type == "started":
+                self.write_log("SYSTEM", f"{name}: {message}")
+
+            # Prozess wurde beendet.
+            elif message_type == "finished":
+                self.write_log("SYSTEM", f"{name}: {message}")
+
+            # Fehler beim Starten oder Ausführen.
+            elif message_type == "error":
+                self.write_log("ERROR", f"{name}: {message}")
 
     def action_clear_log(self) -> None:
         """Leert das Log-Fenster."""
@@ -111,7 +143,7 @@ class PowerScriptApp(App):
         self.query_one("#log", RichLog).clear()
 
     def on_key(self, event) -> None:
-        """Verarbeitet Tastatureingaben für die Skriptauswahl."""
+        """Verarbeitet die Tastatureingaben für die Skriptauswahl."""
 
         # Prüft, ob eine Ziffer zwischen 1 und 9 gedrückt wurde.
         if event.key in ("1", "2", "3", "4", "5", "6", "7", "8", "9"):
@@ -122,19 +154,30 @@ class PowerScriptApp(App):
             # Prüft, ob ein Skript mit dieser Nummer existiert.
             if number <= len(self.scripts):
 
-                # Holt das passende Skript aus der Liste.
+                # Holt das ausgewählte Skript.
                 script = self.scripts[number - 1]
 
-                # Gibt vorerst nur eine Testmeldung aus.
-                self.write_log(
-                    "SCRIPT",
-                    f"{script['name']} wurde ausgewählt."
+                # Liest den Namen und Pfad aus.
+                script_name = script["name"]
+                script_path = script["path"]
+
+                # Übergibt das Skript an unsere Prozessverwaltung.
+                self.script_manager.start_script(
+                    script_name,
+                    script_path,
                 )
 
-            # Verhindert, dass die Ziffer zusätzlich verarbeitet wird.
+            else:
+                # Meldet eine ungültige Skriptnummer.
+                self.write_log(
+                    "ERROR",
+                    f"Kein Skript mit Nummer {number} konfiguriert."
+                )
+
+            # Verhindert eine weitere Verarbeitung der Taste.
             event.stop()
 
 
-# Startet die Anwendung, wenn diese Datei direkt ausgeführt wird.
+# Startet die Anwendung, wenn main.py direkt ausgeführt wird.
 if __name__ == "__main__":
     PowerScriptApp().run()
