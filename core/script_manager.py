@@ -111,19 +111,89 @@ class ScriptManager:
                 ("error", name, f"Start fehlgeschlagen: {error}")
             )
 
+    
     def _read_output(self, name: str, process):
-        """Liest die Ausgabe eines laufenden Prozesses aus."""
+        """Liest die Prozessausgabe und erkennt eine Pause."""
+
+        # Sammelt die Zeichen der aktuell gelesenen Zeile.
+        line_buffer = ""
+
+        # Speichert einen kurzen Ausschnitt der letzten Ausgabe.
+        # Damit können wir auch Aufforderungen ohne Zeilenumbruch erkennen.
+        recent_output = ""
+
+        # Verhindert, dass WAITING mehrfach gemeldet wird.
+        waiting_detected = False
 
         try:
-            # Liest die Ausgabe Zeile für Zeile.
-            for line in process.stdout:
+            # Liest die Ausgabe zeichenweise statt zeilenweise.
+            # Dadurch erkennen wir auch Text ohne abschließenden Zeilenumbruch.
+            while True:
+                character = process.stdout.read(1)
 
-                # Entfernt überflüssige Zeilenumbrüche.
-                line = line.rstrip()
+                # Ein leerer String bedeutet, dass die Ausgabe beendet ist.
+                if character == "":
+                    break
 
-                # Übergibt die Ausgabe an die Nachrichtenwarteschlange.
+                # Fügt das Zeichen zur aktuellen Zeile hinzu.
+                line_buffer += character
+
+                # Behält nur die letzten 120 Zeichen für die Erkennung.
+                recent_output = (recent_output + character)[-120:]
+
+                # Wandelt die Ausgabe für den Vergleich in Kleinbuchstaben um.
+                normalized_output = recent_output.casefold()
+
+                # Erkennt die typische Aufforderung des CMD-Pause-Befehls.
+                pause_prompt = (
+                    "press any key to continue" in normalized_output
+                    or "beliebige taste" in normalized_output
+                )
+
+                # Prüft, ob gerade eine Pause erkannt wurde.
+                if pause_prompt and not waiting_detected:
+
+                    # Gibt die bisherige Ausgabe an die Oberfläche weiter.
+                    prompt = line_buffer.strip()
+
+                    if prompt:
+                        self.messages.put(
+                            ("output", name, prompt)
+                        )
+
+                    # Leert den Zeilenpuffer.
+                    line_buffer = ""
+
+                    # Merkt sich, dass die Pause bereits erkannt wurde.
+                    waiting_detected = True
+
+                    # Meldet der Oberfläche den neuen Status.
+                    self.messages.put(
+                        ("waiting", name, "Skript wartet auf eine Eingabe.")
+                    )
+
+                # Prüft, ob eine vollständige Zeile vorliegt.
+                if character == "\n":
+
+                    # Entfernt Zeilenumbrüche und überflüssige Leerzeichen.
+                    line = line_buffer.rstrip()
+
+                    # Übergibt die Zeile an die Oberfläche.
+                    if line:
+                        self.messages.put(
+                            ("output", name, line)
+                        )
+
+                    # Bereitet die Puffer für die nächste Zeile vor.
+                    line_buffer = ""
+                    recent_output = ""
+
+            # Gibt einen eventuell verbliebenen Text am Ende aus.
+            remaining_text = line_buffer.rstrip()
+
+            if remaining_text:
                 self.messages.put(
-                    ("output", name, line)
+                    ("output", name, remaining_text)
                 )
 
             # Wartet auf das tatsächliche Ende des Prozesses.
@@ -139,6 +209,7 @@ class ScriptManager:
             self.messages.put(
                 ("error", name, f"Fehler beim Lesen: {error}")
             )
+
 
     def get_messages(self):
         """Liefert alle aktuell verfügbaren Nachrichten zurück."""

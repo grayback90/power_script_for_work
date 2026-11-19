@@ -239,6 +239,15 @@ class PowerScriptApp(App):
                 # Schreibt die Startmeldung in das System-Log.
                 self.write_log("SYSTEM", f"{name}: {message}")
 
+            # Skript wartet auf eine Eingabe, beispielsweise bei pause.
+            elif message_type == "waiting":
+
+                # Ändert den Status auf WAITING.
+                self.set_script_status(name, "WAITING")
+
+                # Schreibt die Meldung in das System-Log.
+                self.write_log("SYSTEM", f"{name}: {message}")
+
             # Prozess wurde beendet.
             elif message_type == "finished":
 
