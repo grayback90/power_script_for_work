@@ -9,7 +9,7 @@ from config import load_config
 
 class PowerScriptApp(App):
     TITLE = "Power Script"
-    CSS_PATH = "style.tcss"
+    CSS_PATH = "styles\style.tcss"
     BINDINGS = [
         ("1", "run_dummy('Script 1')", "Script 1"),
         ("2", "run_dummy('Script 2')", "Script 2"),

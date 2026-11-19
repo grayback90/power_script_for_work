@@ -1,0 +1,11 @@
+[[scripts]]
+name = "FTU starten"
+path = "C:/Scripts/start_ftu.cmd"
+
+[[scripts]]
+name = "FTU stoppen"
+path = "C:/Scripts/stop_ftu.cmd"
+
+[[scripts]]
+name = "Beispiel für relativen Pfad"
+path = "scripts/example.cmd"
