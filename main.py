@@ -1,3 +1,4 @@
+
 # Importiert datetime für die Zeitstempel im Log.
 from datetime import datetime
 
@@ -162,7 +163,6 @@ class PowerScriptApp(App):
         # Prüft alle 0,1 Sekunden auf neue Prozessmeldungen.
         self.set_interval(0.1, self.check_process_messages)
 
-    
     async def create_script_tab(self, name: str) -> None:
         """Erstellt einen eigenen Tab für ein Skript."""
 
@@ -201,7 +201,7 @@ class PowerScriptApp(App):
             classes="script-input",
         )
 
-        # Merkt sich, zu welchem Skript diese Eingabezeile gehört.
+        # Merkt sich, zu welchem Skript diese Eingabe gehört.
         self.script_input_names[input_id] = name
 
         # Gruppiert Log und Eingabezeile in einem gemeinsamen Bereich.
@@ -294,7 +294,6 @@ class PowerScriptApp(App):
             # Leert die Eingabezeile für die nächste Eingabe.
             event.input.value = ""
 
-
     def check_process_messages(self) -> None:
         """Holt neue Nachrichten aus der Prozessverwaltung ab."""
 
@@ -334,6 +333,11 @@ class PowerScriptApp(App):
 
                 # Schreibt die Abschlussmeldung in das System-Log.
                 self.write_log("SYSTEM", f"{name}: {message}")
+
+                # Entfernt den Tab nach dem Prozessende.
+                # run_worker führt die asynchrone Methode aus,
+                # ohne die Benutzeroberfläche zu blockieren.
+                self.run_worker(self.remove_script_tab(name))
 
             # Fehler beim Starten oder Ausführen.
             elif message_type == "error":
@@ -377,6 +381,36 @@ class PowerScriptApp(App):
             script_name,
             script["path"],
         )
+
+    async def remove_script_tab(self, name: str) -> None:
+        """Entfernt den Tab und alle zugehörigen Daten eines Skripts."""
+
+        # Ermittelt die ID des Tabs anhand des Skriptnamens.
+        tab_id = self.script_tab_ids.get(name)
+
+        # Falls kein Tab existiert, gibt es nichts zu entfernen.
+        if tab_id is None:
+            return
+
+        # Entfernt den Tab anhand seiner ID aus der Oberfläche.
+        await self.tabs.remove_pane(tab_id)
+
+        # Entfernt die gespeicherte Log-Zuordnung.
+        self.script_logs.pop(name, None)
+
+        # Entfernt die gespeicherte Tab-ID.
+        self.script_tab_ids.pop(name, None)
+
+        # Sucht alle Eingabezeilen, die zu diesem Skript gehören.
+        input_ids = [
+            input_id
+            for input_id, script_name in self.script_input_names.items()
+            if script_name == name
+        ]
+
+        # Entfernt auch diese Eingabezeilen-Zuordnungen.
+        for input_id in input_ids:
+            self.script_input_names.pop(input_id, None)
 
     def on_key(self, event) -> None:
         """Verarbeitet die Tastatureingaben für die Skriptauswahl."""
