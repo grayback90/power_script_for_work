@@ -1,146 +1,214 @@
-# power_script_for_work
+# Power Script
 
-A terminal tool that controls all my work scripts from one place.
+Eine zentrale, terminalbasierte Oberfläche zum Starten und Überwachen von Windows-CMD-Skripten.
 
-## About
+## 📖 Projektbeschreibung
 
-Many small scripts are hard to keep track of. This tool puts them behind a single menu in the terminal. You start a script with one key press and follow its output in a log window next to the menu.
+Im Arbeitsalltag kommen häufig verschiedene Skripte zum Einsatz, beispielsweise zum Starten und Stoppen von Entwicklungsumgebungen, zum Ausführen von Wartungsaufgaben oder zum Vorbereiten lokaler Testumgebungen.
 
-## Features
+**Power Script** soll diese Skripte über eine gemeinsame Oberfläche zugänglich machen.
 
-- Central script that launches and controls all other scripts
-- Log window that shows script output
-- Terminal user interface with a menu and a log panel
+Anstatt mehrere CMD-Fenster manuell zu öffnen und deren Ausgaben separat zu verfolgen, werden die Skripte direkt über eine zentrale Terminal-Oberfläche gestartet. Die jeweiligen Ausgaben erscheinen in eigenen Tabs.
 
-More features will follow.
+Das Projekt wird mit Python entwickelt. Die eigentlichen Arbeitsskripte bleiben eigenständige CMD- bzw. BAT-Dateien.
 
-## Tech Stack
+## 🎯 Geplante Funktionen
 
-- **Language:** [Python](https://www.python.org/) 3.11 or newer
-- **Terminal UI:** [Textual](https://textual.textualize.io/)
-- **Styling:** [Rich](https://github.com/Textualize/rich) (used by Textual)
+- **Zentrales Menü:** Alle konfigurierten Skripte werden automatisch in einer linken Menüleiste angezeigt.
+- **Individuelle Namen:** Anzeigenamen werden zentral in einer Konfigurationsdatei festgelegt.
+- **Eigene Tabs:** Jedes Skript erhält einen eigenen Tab. Der Tab-Name entspricht dem konfigurierten Skriptnamen.
+- **Live-Logs:** Die Konsolenausgaben der Skripte werden direkt in der Oberfläche angezeigt.
+- **Keine zusätzlichen CMD-Fenster:** Skripte sollen im Hintergrund gestartet werden.
+- **Statusanzeige:** Der aktuelle Zustand eines Skripts wird im Menü angezeigt.
+- **Automatische Bereinigung:** Nach Beendigung eines Skripts wird dessen Tab geschlossen und das zugehörige Log verworfen.
+- **Flexible Konfiguration:** Jeder Benutzer kann eigene Skripte und Pfade hinterlegen, ohne den Python-Code ändern zu müssen.
 
-## Setup on a New Machine
+### Vorgesehene Statusanzeigen
 
-Follow these steps on any computer where you want to run or develop the tool.
+| Status | Bedeutung |
+|---|---|
+| AUS | Das Skript läuft nicht. |
+| RUNNING | Das Skript wird ausgeführt. |
+| WAITING | Das Skript wartet auf eine Eingabe, beispielsweise durch `pause`. |
 
-### 1. Install the requirements
+## 🛠️ Technologie
 
-- **Python 3.11 or newer.** Check your version:
+| Komponente | Technologie |
+|---|---|
+| Programmiersprache | Python 3.11+ |
+| Terminal-Oberfläche | [Textual](https://textual.textualize.io/) |
+| Darstellung und Formatierung | [Rich](https://github.com/Textualize/rich) |
+| Konfiguration | TOML |
+| Auszuführende Skripte | Windows CMD / BAT |
 
-  ```bash
-  python --version
-  ```
+Python übernimmt die Steuerung und Darstellung. Die vorhandenen CMD- und BAT-Dateien sollen möglichst unverändert weiterverwendet werden können.
 
-  On Windows, `py --version` also works. If Python is missing, install it from [python.org](https://www.python.org/downloads/). On Windows, tick "Add Python to PATH" during the installation.
+## 📁 Projektstruktur
 
-- **Git.** Check it with:
+Die Projektstruktur wird während der Entwicklung schrittweise aufgebaut.
 
-  ```bash
-  git --version
-  ```
+Die angestrebte Struktur:
 
-### 2. Clone the repository
+```text
+power_script_for_work/
+│
+├── main.py
+├── config.py
+├── requirements.txt
+├── README.md
+├── LICENSE
+├── .gitignore
+│
+├── config/
+│   ├── config.example.toml
+│   └── config.toml
+│
+├── core/
+│   └── ...
+│
+├── ui/
+│   └── ...
+│
+└── styles/
+    └── style.tcss
+```
 
-```bash
+Die tatsächliche Struktur kann sich während der Entwicklung noch ändern.
+
+## ⚙️ Entwicklung einrichten
+
+### Voraussetzungen
+
+- Windows
+- Python 3.11 oder neuer
+- Git
+- Visual Studio Code (empfohlen)
+
+Python-Version prüfen:
+
+```cmd
+python --version
+```
+
+Git-Version prüfen:
+
+```cmd
+git --version
+```
+
+### Repository herunterladen
+
+```cmd
 git clone https://github.com/grayback90/power_script_for_work.git
 cd power_script_for_work
 ```
 
-If the repository is private, Git asks you to log in to GitHub. Use your GitHub account or a personal access token. Alternatively, set up an SSH key and clone with the SSH URL.
+### Virtuelle Umgebung erstellen
 
-### 3. Create a virtual environment
-
-```bash
+```cmd
 python -m venv .venv
 ```
 
-The folder `.venv` holds a Python installation that belongs only to this project. It is not part of the repository.
+### Virtuelle Umgebung aktivieren
 
-### 4. Activate the virtual environment
+In der Windows-Eingabeaufforderung (CMD):
 
-Windows PowerShell:
+```cmd
+.venv\Scripts\activate.bat
+```
+
+In PowerShell:
 
 ```powershell
 .venv\Scripts\Activate.ps1
 ```
 
-Windows CMD:
+### Abhängigkeiten installieren
 
-```
-.venv\Scripts\activate.bat
-```
-
-Linux and macOS:
-
-```bash
-source .venv/bin/activate
-```
-
-You see `(.venv)` in front of your prompt when it works. If PowerShell blocks the script, run this once and try again:
-
-```powershell
-Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
-```
-
-### 5. Install the dependencies
-
-```bash
+```cmd
 pip install -r requirements.txt
 ```
 
-### 6. Create your config file
+### Anwendung starten
 
-The paths to your scripts are stored in a local config file. It is not part of the repository, so every machine needs its own copy. Create `config.toml` in the project folder and enter the paths to your scripts. Details follow in the Configuration section.
-
-### 7. Start the tool
-
-```bash
+```cmd
 python main.py
 ```
 
-Press `q` to quit.
+## 📝 Konfiguration
 
-## Daily Workflow
+Die auszuführenden Skripte sollen zentral über eine TOML-Datei konfiguriert werden.
 
-Activate the virtual environment first (step 4). Then:
+Jeder Eintrag enthält mindestens einen Anzeigenamen und den Pfad zur auszuführenden CMD- oder BAT-Datei.
 
-```bash
-git pull                      # get the latest changes
-python main.py                # run the tool
-git status                    # see what you changed
-git add .
-git commit -m "Describe your change"
-git push                      # upload your changes
+Beispiel für das angestrebte Konfigurationsformat:
+
+```toml
+[[scripts]]
+name = "FTU starten"
+path = "C:/Scripts/start_ftu.cmd"
+
+[[scripts]]
+name = "FTU stoppen"
+path = "C:/Scripts/stop_ftu.cmd"
+
+[[scripts]]
+name = "Datenbank zurücksetzen"
+path = "C:/Scripts/reset_database.cmd"
 ```
 
-Always run `git pull` before you start working. Always run `git push` when you finish. This keeps all machines in sync.
+Die Anzahl der Einträge ist nicht fest vorgegeben. Das Menü soll automatisch anhand der Konfiguration aufgebaut werden.
 
-### Adding a new dependency
+Die persönliche `config.toml` soll nicht versioniert werden. Stattdessen wird eine Beispielkonfiguration (`config.example.toml`) im Repository bereitgestellt.
 
-```bash
-pip install <package>
-pip freeze > requirements.txt
-```
+*Hinweis: Das hier gezeigte Konfigurationsformat beschreibt den geplanten Zielzustand. Die vollständige Unterstützung wird im Laufe der Entwicklung umgesetzt.*
 
-Commit the changed `requirements.txt`. On the other machine, run `pip install -r requirements.txt` after `git pull`.
+## 🔄 Entwicklungsablauf
 
-## Configuration
+Power Script wird schrittweise gemeinsam entwickelt.
 
-The paths to the scripts are stored in a config file, not in the source code. Everyone who uses the tool sets their own paths. Nobody has to change the code when scripts live in a different folder.
+Dabei gelten folgende Grundsätze:
 
-The file `config.toml` is listed in `.gitignore`. Your personal paths never end up in the repository.
+1. Änderungen werden zunächst lokal umgesetzt und getestet.
+2. Neue Funktionen werden einzeln entwickelt und nachvollziehbar erklärt.
+3. Der Code soll verständlich und möglichst einfach wartbar bleiben.
+4. Bestehende CMD- und BAT-Skripte sollen möglichst nicht verändert werden müssen.
+5. Commits und Pushes werden ausschließlich vom Repository-Besitzer selbst durchgeführt.
 
-## Troubleshooting
+Entwickelt wird direkt auf dem Branch `main`.
 
-- **`python` is not found:** Try `py` (Windows) or `python3` (Linux and macOS).
-- **`pip install` fails outside the virtual environment:** Activate `.venv` first (step 4).
-- **Window looks broken or shows no colors:** Use a modern terminal such as Windows Terminal.
+## 🚧 Entwicklungsstand
 
-## Status
+**Aktueller Stand: Frühe Entwicklungsphase**
 
-Early development.
+Die grundlegende Terminal-Oberfläche mit Textual ist bereits vorhanden.
 
-## License
+Folgende Bereiche werden schrittweise umgesetzt:
 
-GPL-3.0. See the `LICENSE` file.
+- [ ] Konfigurationsdatei überarbeiten und validieren
+- [ ] Dynamisches Menü aus der Konfiguration erstellen
+- [ ] Eigene Tabs für jedes Skript implementieren
+- [ ] CMD- und BAT-Dateien im Hintergrund starten
+- [ ] Live-Ausgabe von `stdout` und `stderr` integrieren
+- [ ] Prozessstatus erkennen und anzeigen
+- [ ] Umgang mit `pause` und wartenden Prozessen umsetzen
+- [ ] Tabs und Logs nach Prozessende automatisch entfernen
+- [ ] Fehlerbehandlung ergänzen
+- [ ] Start über eine CMD-Datei ermöglichen
+- [ ] Portable Bereitstellung für Kollegen vorbereiten
+
+## 📦 Geplante Bereitstellung
+
+Langfristig soll Power Script auch von Kollegen verwendet werden können, ohne dass diese Python selbst installieren oder eine virtuelle Umgebung einrichten müssen.
+
+Dafür wird eine portable Bereitstellung geprüft, die Python und die benötigten Abhängigkeiten mitbringt.
+
+Eine EXE-Datei ist derzeit nicht vorgesehen.
+
+Die konkrete Verteilung und die Kompatibilität mit den IT-Vorgaben werden zu einem späteren Zeitpunkt geklärt.
+
+## 📄 Lizenz
+
+Dieses Projekt steht unter der **GNU General Public License v3.0**.
+
+Weitere Informationen befinden sich in der Datei `LICENSE`.
