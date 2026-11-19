@@ -88,7 +88,7 @@ class PowerScriptApp(App):
 
             # Erstellt den Menüeintrag mit Name und Status.
             lines.append(
-                f"{number}) {script['name']} [{status}]"
+                f"{number}) {script['name']} - {status}"
             )
 
         # Verbindet alle Einträge zu einem Text.
