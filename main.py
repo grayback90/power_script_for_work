@@ -61,6 +61,9 @@ class PowerScriptApp(App):
         # Speichert die Tab-IDs anhand des Skriptnamens.
         self.script_tab_ids = {}
 
+        # Ordnet jede Eingabezeile dem zugehörigen Skriptnamen zu.
+        self.script_input_names = {}
+
         # Zählt die Tabs, damit jeder eine eindeutige ID erhält.
         self.next_tab_number = 1
 
@@ -188,12 +191,18 @@ class PowerScriptApp(App):
             classes="script-log",
         )
 
+        # Erstellt eine eindeutige ID für die Eingabezeile.
+        input_id = f"script-input-{tab_number}"
+
         # Erstellt die Eingabezeile unterhalb des Logs.
-        # Hier sollen später Eingaben an das Skript gesendet werden.
         script_input = Input(
+            id=input_id,
             placeholder="Eingabe für das Skript ...",
             classes="script-input",
         )
+
+        # Merkt sich, zu welchem Skript diese Eingabezeile gehört.
+        self.script_input_names[input_id] = name
 
         # Gruppiert Log und Eingabezeile in einem gemeinsamen Bereich.
         script_content = Vertical(
@@ -234,6 +243,57 @@ class PowerScriptApp(App):
         # Schreibt die Nachricht, sofern ein passendes Log existiert.
         if target_log is not None:
             target_log.write(line)
+
+    def on_input_submitted(self, event: Input.Submitted) -> None:
+        """Sendet eine Eingabe an den passenden Hintergrundprozess."""
+
+        # Ermittelt anhand der ID, zu welchem Skript die Eingabe gehört.
+        script_name = self.script_input_names.get(event.input.id)
+
+        # Ohne Zuordnung kann die Eingabe nicht verarbeitet werden.
+        if script_name is None:
+            return
+
+        # Holt den zugehörigen Prozess.
+        process = self.script_manager.processes.get(script_name)
+
+        # Prüft, ob der Prozess noch läuft und Eingaben annehmen kann.
+        if process is None or process.poll() is not None:
+            self.write_log(
+                "ERROR",
+                f"{script_name}: Prozess läuft nicht mehr."
+            )
+            event.input.value = ""
+            return
+
+        try:
+            # Sendet den eingegebenen Text samt Zeilenumbruch.
+            # Der Zeilenumbruch entspricht dem Drücken der Enter-Taste.
+            process.stdin.write(event.value + "\n")
+
+            # Stellt sicher, dass die Eingabe sofort übertragen wird.
+            process.stdin.flush()
+
+            # Zeigt die gesendete Eingabe im Skript-Log an.
+            self.write_log(
+                script_name,
+                f"> {event.value}"
+            )
+
+            # Nach einer Eingabe kann das Skript weiterlaufen.
+            self.set_script_status(script_name, "RUNNING")
+
+        except (OSError, ValueError) as error:
+            # Meldet Probleme beim Übertragen der Eingabe.
+            self.write_log(
+                "ERROR",
+                f"{script_name}: Eingabe fehlgeschlagen: {error}"
+            )
+
+        finally:
+            # Leert die Eingabezeile für die nächste Eingabe.
+            event.input.value = ""
+
 
     def check_process_messages(self) -> None:
         """Holt neue Nachrichten aus der Prozessverwaltung ab."""
