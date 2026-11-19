@@ -51,7 +51,7 @@ class PowerScriptApp(App):
         # Speichert die konfigurierten Skripte.
         self.scripts = self.config["scripts"]
 
-        # Erstellt die Verwaltung für unsere Hintergrundprozesse.
+        # Erstellt die Verwaltung unserer Hintergrundprozesse.
         self.script_manager = ScriptManager()
 
         # Speichert die Log-Fenster der einzelnen Skripte.
@@ -67,15 +67,29 @@ class PowerScriptApp(App):
         # Wird später mit dem Tab-Container der Oberfläche verbunden.
         self.tabs = None
 
+        # Speichert den aktuellen Status jedes konfigurierten Skripts.
+        # Beim Programmstart ist zunächst jedes Skript ausgeschaltet.
+        self.script_status = {
+            script["name"]: "AUS"
+            for script in self.scripts
+        }
+
     def build_menu_text(self) -> str:
-        """Erstellt das Menü anhand der Konfiguration."""
+        """Erstellt das Menü anhand der Konfiguration und Statuswerte."""
 
         # Hier sammeln wir die Menüeinträge.
         lines = []
 
         # Geht alle Skripte durch und nummeriert sie.
         for number, script in enumerate(self.scripts, start=1):
-            lines.append(f"{number}) {script['name']}")
+
+            # Liest den aktuellen Status des Skripts.
+            status = self.script_status[script["name"]]
+
+            # Erstellt den Menüeintrag mit Name und Status.
+            lines.append(
+                f"{number}) {script['name']} [{status}]"
+            )
 
         # Verbindet alle Einträge zu einem Text.
         script_block = "\n".join(lines)
@@ -85,6 +99,23 @@ class PowerScriptApp(App):
             f"[b]Scripts[/b]\n\n{script_block}\n\n"
             "[b]Other[/b]\n\nC) Clear system log\nQ) Quit"
         )
+
+    def refresh_menu(self) -> None:
+        """Aktualisiert die Menüanzeige mit den aktuellen Statuswerten."""
+
+        # Erstellt den Menütext neu und übergibt ihn an das sichtbare Element.
+        self.query_one("#menu", Static).update(
+            self.build_menu_text()
+        )
+
+    def set_script_status(self, name: str, status: str) -> None:
+        """Ändert den Status eines Skripts und aktualisiert das Menü."""
+
+        # Speichert den neuen Status.
+        self.script_status[name] = status
+
+        # Aktualisiert die sichtbare Menüanzeige.
+        self.refresh_menu()
 
     def compose(self) -> ComposeResult:
         """Erstellt die sichtbaren Elemente der Anwendung."""
@@ -201,14 +232,29 @@ class PowerScriptApp(App):
 
             # Erfolgreicher Start eines Skripts.
             elif message_type == "started":
+
+                # Setzt den Status auf RUNNING.
+                self.set_script_status(name, "RUNNING")
+
+                # Schreibt die Startmeldung in das System-Log.
                 self.write_log("SYSTEM", f"{name}: {message}")
 
             # Prozess wurde beendet.
             elif message_type == "finished":
+
+                # Setzt den Status wieder auf AUS.
+                self.set_script_status(name, "AUS")
+
+                # Schreibt die Abschlussmeldung in das System-Log.
                 self.write_log("SYSTEM", f"{name}: {message}")
 
             # Fehler beim Starten oder Ausführen.
             elif message_type == "error":
+
+                # Bei einem Fehler bleibt das Skript auf AUS.
+                self.set_script_status(name, "AUS")
+
+                # Schreibt die Fehlermeldung in das System-Log.
                 self.write_log("ERROR", f"{name}: {message}")
 
     def action_clear_log(self) -> None:
