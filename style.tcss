@@ -8,3 +8,13 @@
     border: round yellow;
     padding: 0 1;
 }
+
+/* Das Log nutzt den verfügbaren Platz im Skript-Tab. */
+.script-log {
+    height: 1fr;
+}
+
+/* Die Eingabezeile erhält eine feste Höhe. */
+.script-input {
+    height: 3;
+}

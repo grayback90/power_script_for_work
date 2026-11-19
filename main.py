@@ -1,13 +1,13 @@
-
 # Importiert datetime für die Zeitstempel im Log.
 from datetime import datetime
 
 # Importiert die benötigten Bestandteile von Textual.
 from textual.app import App, ComposeResult
-from textual.containers import Horizontal
+from textual.containers import Horizontal, Vertical
 from textual.widgets import (
     Footer,
     Header,
+    Input,
     RichLog,
     Static,
     TabbedContent,
@@ -159,6 +159,7 @@ class PowerScriptApp(App):
         # Prüft alle 0,1 Sekunden auf neue Prozessmeldungen.
         self.set_interval(0.1, self.check_process_messages)
 
+    
     async def create_script_tab(self, name: str) -> None:
         """Erstellt einen eigenen Tab für ein Skript."""
 
@@ -180,11 +181,28 @@ class PowerScriptApp(App):
         tab_id = f"script-tab-{tab_number}"
         log_id = f"script-log-{tab_number}"
 
-        # Erstellt das Log-Fenster für dieses Skript.
-        script_log = RichLog(id=log_id, markup=True)
+        # Erstellt das Log-Fenster für die Skriptausgaben.
+        script_log = RichLog(
+            id=log_id,
+            markup=True,
+            classes="script-log",
+        )
 
-        # Erstellt einen neuen Tab und fügt ihn dem Tab-Container hinzu.
-        new_tab = TabPane(name, script_log, id=tab_id)
+        # Erstellt die Eingabezeile unterhalb des Logs.
+        # Hier sollen später Eingaben an das Skript gesendet werden.
+        script_input = Input(
+            placeholder="Eingabe für das Skript ...",
+            classes="script-input",
+        )
+
+        # Gruppiert Log und Eingabezeile in einem gemeinsamen Bereich.
+        script_content = Vertical(
+            script_log,
+            script_input,
+        )
+
+        # Erstellt den neuen Tab mit dem gemeinsamen Inhaltsbereich.
+        new_tab = TabPane(name, script_content, id=tab_id)
         await self.tabs.add_pane(new_tab)
 
         # Speichert das Log-Fenster unter dem Skriptnamen.
