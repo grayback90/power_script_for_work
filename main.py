@@ -6,6 +6,7 @@ from datetime import datetime
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical
 from textual.widgets import (
+    Button,
     Footer,
     Header,
     Input,
@@ -78,39 +79,33 @@ class PowerScriptApp(App):
             for script in self.scripts
         }
 
-    def build_menu_text(self) -> str:
-        """Erstellt das Menü anhand der Konfiguration und Statuswerte."""
+    def build_script_button_label(self, number: int, script: dict) -> str:
+        """Erstellt die Beschriftung eines Skript-Buttons."""
 
-        # Hier sammeln wir die Menüeinträge.
-        lines = []
+        # Liest den aktuellen Status des Skripts.
+        status = self.script_status[script["name"]]
 
-        # Geht alle Skripte durch und nummeriert sie.
-        for number, script in enumerate(self.scripts, start=1):
+        # Gibt Nummer, Namen und Status zurück.
+        return f"{number}) {script['name']} - {status}"
 
-            # Liest den aktuellen Status des Skripts.
-            status = self.script_status[script["name"]]
-
-            # Erstellt den Menüeintrag mit Name und Status.
-            lines.append(
-                f"{number}) {script['name']} - {status}"
-            )
-
-        # Verbindet alle Einträge zu einem Text.
-        script_block = "\n".join(lines)
-
-        # Erstellt den vollständigen Menütext.
-        return (
-            f"[b]Scripts[/b]\n\n{script_block}\n\n"
-            "[b]Other[/b]\n\nC) Clear system log\nQ) Quit"
-        )
 
     def refresh_menu(self) -> None:
-        """Aktualisiert die Menüanzeige mit den aktuellen Statuswerten."""
+        """Aktualisiert die Beschriftungen aller Skript-Buttons."""
 
-        # Erstellt den Menütext neu und übergibt ihn an das sichtbare Element.
-        self.query_one("#menu", Static).update(
-            self.build_menu_text()
-        )
+        # Geht alle konfigurierten Skripte durch.
+        for number, script in enumerate(self.scripts, start=1):
+
+            # Ermittelt den passenden Button.
+            button = self.query_one(
+                f"#script-button-{number}",
+                Button,
+            )
+
+            # Aktualisiert die Beschriftung mit dem aktuellen Status.
+            button.label = self.build_script_button_label(
+                number,
+                script,
+            )
 
     def set_script_status(self, name: str, status: str) -> None:
         """Ändert den Status eines Skripts und aktualisiert das Menü."""
@@ -130,8 +125,34 @@ class PowerScriptApp(App):
         # Ordnet Menü und Tab-Bereich nebeneinander an.
         with Horizontal():
 
-            # Erstellt das dynamische Menü.
-            yield Static(self.build_menu_text(), id="menu")
+            # Erstellt das Menü mit den Skript-Buttons.
+            with Vertical(id="menu"):
+
+                # Überschrift des Menüs.
+                yield Static("[b]Scripts[/b]")
+
+                # Erstellt für jedes konfigurierte Skript einen Button.
+                for number, script in enumerate(self.scripts, start=1):
+
+                    yield Button(
+                        self.build_script_button_label(number, script),
+                        id=f"script-button-{number}",
+                    )
+
+                # Bereich für weitere Funktionen.
+                yield Static("[b]Other[/b]")
+
+                # Button zum Leeren des System-Logs.
+                yield Button(
+                    "Clear system log",
+                    id="clear-log-button",
+                )
+
+                # Button zum Beenden der Anwendung.
+                yield Button(
+                    "Quit",
+                    id="quit-button",
+                )
 
             # Erstellt den Tab-Container.
             with TabbedContent(id="script-tabs"):
@@ -152,7 +173,7 @@ class PowerScriptApp(App):
         self.tabs = self.query_one("#script-tabs", TabbedContent)
 
         # Setzt den Rahmen-Titel des Menüs.
-        self.query_one("#menu").border_title = "Menu"
+        self.query_one("#menu", Vertical).border_title = "Menu"
 
         # Setzt den Rahmen-Titel des System-Logs.
         self.query_one("#system-log").border_title = "System Log"
@@ -243,6 +264,34 @@ class PowerScriptApp(App):
         # Schreibt die Nachricht, sofern ein passendes Log existiert.
         if target_log is not None:
             target_log.write(line)
+        
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        """Verarbeitet Klicks auf die Menü-Buttons."""
+
+        # Ermittelt die ID des angeklickten Buttons.
+        button_id = event.button.id
+
+        # Prüft, ob ein Skript-Button angeklickt wurde.
+        if button_id and button_id.startswith("script-button-"):
+
+            # Ermittelt die Nummer aus der Button-ID.
+            number = int(button_id.replace("script-button-", ""))
+
+            # Holt das zugehörige Skript aus der Konfiguration.
+            script = self.scripts[number - 1]
+
+            # Startet das Skript über dieselbe Methode wie die Zahlentasten.
+            self.run_worker(self.start_script_with_tab(script))
+
+        # Prüft, ob der Button zum Leeren des System-Logs angeklickt wurde.
+        elif button_id == "clear-log-button":
+
+            self.action_clear_log()
+
+        # Prüft, ob der Beenden-Button angeklickt wurde.
+        elif button_id == "quit-button":
+
+            self.exit()
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
         """Sendet eine Eingabe an den passenden Hintergrundprozess."""
