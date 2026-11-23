@@ -90,7 +90,14 @@ class PowerScriptApp(App):
 
 
     def refresh_menu(self) -> None:
-        """Aktualisiert die Beschriftungen aller Skript-Buttons."""
+        """Aktualisiert Beschriftung und Farbe aller Skript-Buttons."""
+
+        # Legt die passende Button-Variante für jeden Status fest.
+        status_variants = {
+            "AUS": "default",
+            "RUNNING": "success",
+            "WAITING": "warning",
+        }
 
         # Geht alle konfigurierten Skripte durch.
         for number, script in enumerate(self.scripts, start=1):
@@ -101,16 +108,22 @@ class PowerScriptApp(App):
                 Button,
             )
 
+            # Liest den aktuellen Status des Skripts.
+            status = self.script_status[script["name"]]
+
             # Erstellt die neue Beschriftung.
             label = self.build_script_button_label(
                 number,
                 script,
             )
 
-            # Setzt die neue Beschriftung.
+            # Aktualisiert die Beschriftung.
             button.label = label
 
-            # Erzwingt die Aktualisierung der Darstellung und Größe.
+            # Ändert die Farbe entsprechend dem Status.
+            button.variant = status_variants.get(status, "default")
+
+            # Aktualisiert die Darstellung und Größe.
             button.refresh(layout=True)
 
     def set_script_status(self, name: str, status: str) -> None:
