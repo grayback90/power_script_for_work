@@ -101,11 +101,17 @@ class PowerScriptApp(App):
                 Button,
             )
 
-            # Aktualisiert die Beschriftung mit dem aktuellen Status.
-            button.label = self.build_script_button_label(
+            # Erstellt die neue Beschriftung.
+            label = self.build_script_button_label(
                 number,
                 script,
             )
+
+            # Setzt die neue Beschriftung.
+            button.label = label
+
+            # Erzwingt die Aktualisierung der Darstellung und Größe.
+            button.refresh(layout=True)
 
     def set_script_status(self, name: str, status: str) -> None:
         """Ändert den Status eines Skripts und aktualisiert das Menü."""
