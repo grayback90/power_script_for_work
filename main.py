@@ -193,6 +193,9 @@ class PowerScriptApp(App):
         # Verbindet unsere Variable mit dem Tab-Container.
         self.tabs = self.query_one("#script-tabs", TabbedContent)
 
+        # Gibt dem System-Tab die erste Tab-Farbe.
+        self.query_one("#--content-tab-system-tab").add_class("tab-color-blue")
+
         # Setzt den Rahmen-Titel des Menüs.
         self.query_one("#menu", Vertical).border_title = "Menu"
 
@@ -254,7 +257,15 @@ class PowerScriptApp(App):
 
         # Erstellt den neuen Tab mit dem gemeinsamen Inhaltsbereich.
         new_tab = TabPane(name, script_content, id=tab_id)
+        
         await self.tabs.add_pane(new_tab)
+
+        # Weist dem Tab nach dem Einfügen seine Farbe zu.
+        self.call_after_refresh(
+            self.color_script_tab,
+            tab_id,
+            tab_number
+        )
 
         # Speichert das Log-Fenster unter dem Skriptnamen.
         self.script_logs[name] = script_log
@@ -290,6 +301,18 @@ class PowerScriptApp(App):
         # Schreibt die Nachricht, sofern ein passendes Log existiert.
         if target_log is not None:
             target_log.write(line)
+    
+    def color_script_tab(self, tab_id: str, tab_number: int):
+        """Weist dem Tab-Button abwechselnd eine Farbe zu."""
+
+        # Ermittelt den Tab-Button des neu erstellten Tabs.
+        tab_button = self.query_one(f"#--content-tab-{tab_id}")
+
+        # Wechselt zwischen Blau und Türkis.
+        if tab_number % 2 == 1:
+            tab_button.add_class("tab-color-teal")
+        else:
+            tab_button.add_class("tab-color-blue")
         
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Verarbeitet Klicks auf die Menü-Buttons."""

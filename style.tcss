@@ -18,3 +18,36 @@
 .script-input {
     height: 3;
 }
+
+
+/* Macht die Tab-Leiste etwas höher. */
+#script-tabs > Tabs {
+    height: 3;
+}
+
+/* Vergrößert die einzelnen Tabs. */
+#script-tabs > Tabs > Tab {
+    height: 3;
+    padding: 0 3;
+    content-align: center middle;
+    text-style: bold;
+}
+
+/* Erste Tab-Farbe: Blau. */
+#script-tabs Tab.tab-color-blue {
+    background: #245477;
+    color: white;
+}
+
+/* Zweite Tab-Farbe: Türkis. */
+#script-tabs Tab.tab-color-teal {
+    background: #17665f;
+    color: white;
+}
+
+/* Aktiver Tab: deutlich hellere Darstellung. */
+#script-tabs Tab.-active {
+    background: #d49b35;
+    color: black;
+    text-style: bold;
+}
