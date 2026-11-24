@@ -85,5 +85,19 @@ def load_config():
         # einen absoluten Pfad, unabhängig von der ursprünglichen Eingabe.
         script["path"] = script_path.resolve()
 
+        # Prüft, ob der optionale Parameter allow_manual_stop vorhanden ist.
+        # Wenn er fehlt, wird standardmäßig False verwendet.
+        allow_manual_stop = script.get("allow_manual_stop", False)
+
+        # Prüft, ob der Parameter tatsächlich einen Boolean enthält.
+        if not isinstance(allow_manual_stop, bool):
+            raise ValueError(
+                f"Ungültiger Wert für allow_manual_stop bei Skript '{script['name']}'. "
+                "Erlaubt sind nur true oder false."
+            )
+
+        # Speichert den geprüften Wert im Skripteintrag.
+        script["allow_manual_stop"] = allow_manual_stop
+
     # Gibt die vollständige Konfiguration an den Aufrufer zurück.
     return config

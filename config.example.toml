@@ -5,10 +5,12 @@ title = "Config File"
 # [[scripts]]
 # name = "Test 1"
 # path = "DEIN_PFAD/power_script_for_work/test-scripts/test.cmd"
+# allow_manual_stop = false
 
 # [[scripts]]
 # name = "Test 2"
 # path = "DEIN_PFAD/power_script_for_work/test-scripts/test_2.bat"
+# allow_manual_stop = true
 
 [[scripts]]
 name = "Beispiel für relativen Pfad"

@@ -81,14 +81,30 @@ class PowerScriptApp(App):
             for script in self.scripts
         }
 
-    def build_script_button_label(self, number: int, script: dict) -> str:
-        """Erstellt die Beschriftung eines Skript-Buttons."""
+    def build_script_button_label(self, script_name: str) -> Text:
+        """Erstellt die Button-Beschriftung mit farbigem Statussymbol."""
 
-        # Liest den aktuellen Status des Skripts.
-        status = self.script_status[script["name"]]
+        status = self.script_status.get(script_name, "AUS")
 
-        # Gibt Nummer, Namen und Status zurück.
-        return f"{number}) {script['name']} - {status}"
+        # Weist jedem Status sein eigenes Symbol und seine Farbe zu.
+        if status == "RUNNING":
+            symbol = "[+]"
+            color = "green"
+        elif status == "WAITING":
+            symbol = "[!]"
+            color = "orange1"
+        else:
+            symbol = "[-]"
+            color = "white"
+
+        # Erstellt die Beschriftung mit getrennt formatiertem Symbol.
+        label = Text()
+        label.append("[", style="white")
+        label.append(symbol[1], style=color)
+        label.append("]", style="white")
+        label.append(f" {script_name}")
+
+        return label
 
 
     def refresh_menu(self) -> None:
@@ -114,10 +130,7 @@ class PowerScriptApp(App):
             status = self.script_status[script["name"]]
 
             # Erstellt die neue Beschriftung.
-            label = self.build_script_button_label(
-                number,
-                script,
-            )
+            label = self.build_script_button_label(script["name"])
 
             # Aktualisiert die Beschriftung.
             button.label = label
@@ -156,7 +169,7 @@ class PowerScriptApp(App):
                 for number, script in enumerate(self.scripts, start=1):
 
                     yield Button(
-                        self.build_script_button_label(number, script),
+                        self.build_script_button_label(script["name"]),
                         id=f"script-button-{number}",
                     )
 
