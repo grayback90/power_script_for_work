@@ -211,6 +211,38 @@ class ScriptManager:
             )
 
 
+    def stop_script(self, name: str) -> bool:
+        """Beendet ein freigegebenes Skript einschließlich seiner Unterprozesse."""
+
+        # Holt den Prozess anhand des Skriptnamens.
+        process = self.processes.get(name)
+
+        # Prüft, ob das Skript überhaupt bekannt ist.
+        if process is None:
+            return False
+
+        # Prüft, ob der Prozess noch läuft.
+        if process.poll() is not None:
+            return False
+
+        try:
+            # Beendet den gesamten Prozessbaum des gestarteten CMD-Prozesses.
+            subprocess.run(
+                ["taskkill", "/PID", str(process.pid), "/T", "/F"],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            return True
+
+        except subprocess.CalledProcessError as error:
+            # Meldet einen Fehler beim Beenden des Prozesses.
+            self.messages.put(
+                ("error", name, f"Beenden fehlgeschlagen: {error.stderr}")
+            )
+            return False
+
     def get_messages(self):
         """Liefert alle aktuell verfügbaren Nachrichten zurück."""
 

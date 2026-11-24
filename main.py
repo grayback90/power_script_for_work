@@ -106,7 +106,6 @@ class PowerScriptApp(App):
 
         return label
 
-
     def refresh_menu(self) -> None:
         """Aktualisiert Beschriftung und Farbe aller Skript-Buttons."""
 
@@ -270,7 +269,7 @@ class PowerScriptApp(App):
 
         # Erstellt den neuen Tab mit dem gemeinsamen Inhaltsbereich.
         new_tab = TabPane(name, script_content, id=tab_id)
-        
+
         await self.tabs.add_pane(new_tab)
 
         # Weist dem Tab nach dem Einfügen seine Farbe zu.
@@ -314,7 +313,7 @@ class PowerScriptApp(App):
         # Schreibt die Nachricht, sofern ein passendes Log existiert.
         if target_log is not None:
             target_log.write(line)
-    
+
     def color_script_tab(self, tab_id: str, tab_number: int):
         """Weist dem Tab-Button abwechselnd eine Farbe zu."""
 
@@ -326,7 +325,7 @@ class PowerScriptApp(App):
             tab_button.add_class("tab-color-teal")
         else:
             tab_button.add_class("tab-color-blue")
-        
+
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Verarbeitet Klicks auf die Menü-Buttons."""
 
@@ -342,7 +341,45 @@ class PowerScriptApp(App):
             # Holt das zugehörige Skript aus der Konfiguration.
             script = self.scripts[number - 1]
 
-            # Startet das Skript über dieselbe Methode wie die Zahlentasten.
+            # Liest den Namen des ausgewählten Skripts.
+            script_name = script["name"]
+
+            # Prüft, ob das Skript bereits gestartet wurde.
+            process = self.script_manager.processes.get(script_name)
+
+            # Prüft, ob der Prozess noch läuft.
+            if process is not None and process.poll() is None:
+
+                # Prüft, ob das manuelle Beenden erlaubt ist.
+                if not script.get("allow_manual_stop", False):
+
+                    # Informiert den Benutzer, dass das Skript nicht
+                    # über den Menü-Button beendet werden darf.
+                    self.write_log(
+                        "ERROR",
+                        f"{script_name}: Manuelles Beenden nicht erlaubt. "
+                        "Bitte das vorgesehene Stop-Skript verwenden."
+                    )
+                    return
+
+                # Beendet das Skript einschließlich seiner Unterprozesse.
+                stopped = self.script_manager.stop_script(script_name)
+
+                # Meldet, ob das Beenden erfolgreich angestoßen wurde.
+                if stopped:
+                    self.write_log(
+                        "SYSTEM",
+                        f"{script_name}: Manuelles Beenden angefordert."
+                    )
+                else:
+                    self.write_log(
+                        "ERROR",
+                        f"{script_name}: Beenden fehlgeschlagen."
+                    )
+
+                return
+
+            # Wenn das Skript nicht läuft, wird es wie bisher gestartet.
             self.run_worker(self.start_script_with_tab(script))
 
         # Prüft, ob der Button zum Leeren des System-Logs angeklickt wurde.
