@@ -353,13 +353,12 @@ class PowerScriptApp(App):
                 # Prüft, ob das manuelle Beenden erlaubt ist.
                 if not script.get("allow_manual_stop", False):
 
-                    # Informiert den Benutzer, dass das Skript nicht
-                    # über den Menü-Button beendet werden darf.
-                    self.write_log(
-                        "ERROR",
-                        f"{script_name}: Manuelles Beenden nicht erlaubt. "
-                        "Bitte das vorgesehene Stop-Skript verwenden."
-                    )
+                    # Wechselt zum bereits geöffneten Tab des Skripts.
+                    tab_id = self.script_tab_ids.get(script_name)
+
+                    if tab_id is not None:
+                        self.tabs.active = tab_id
+
                     return
 
                 # Beendet das Skript einschließlich seiner Unterprozesse.
