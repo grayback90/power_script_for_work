@@ -1,10 +1,14 @@
-[[scripts]]
-name = "FTU starten"
-path = "C:/Scripts/start_ftu.cmd"
+# This is a TOML document
 
-[[scripts]]
-name = "FTU stoppen"
-path = "C:/Scripts/stop_ftu.cmd"
+title = "Config File"
+
+# [[scripts]]
+# name = "Test 1"
+# path = "DEIN_PFAD/power_script_for_work/test-scripts/test.cmd"
+
+# [[scripts]]
+# name = "Test 2"
+# path = "DEIN_PFAD/power_script_for_work/test-scripts/test_2.bat"
 
 [[scripts]]
 name = "Beispiel für relativen Pfad"
