@@ -2,6 +2,8 @@
 # Importiert datetime für die Zeitstempel im Log.
 from datetime import datetime
 
+from rich.text import Text
+
 # Importiert die benötigten Bestandteile von Textual.
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical
@@ -269,8 +271,13 @@ class PowerScriptApp(App):
         # Ermittelt die aktuelle Uhrzeit.
         time = datetime.now().strftime("%H:%M:%S")
 
-        # Erstellt die formatierte Logzeile.
-        line = f"[dim]{time}[/dim] | [cyan]{source:<8}[/cyan] | {message}"
+        # Erstellt den formatierten Kopf der Logzeile.
+        line = Text.from_markup(
+            f"[dim]{time}[/dim] | [cyan]{source:<8}[/cyan] | "
+        )
+
+        # Wandelt ANSI-Farbsequenzen der Skriptausgabe in Rich-Text um.
+        line.append_text(Text.from_ansi(message))
 
         # Systemmeldungen und Fehler gehören in den System-Tab.
         if source in ("SYSTEM", "ERROR"):
