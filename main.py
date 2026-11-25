@@ -2,18 +2,6 @@
 # Importiert datetime für die Zeitstempel im Log.
 from datetime import datetime
 
-# Erstellt JSON-Daten aus Python-Dictionaries.
-import json
-
-# Ermöglicht das Versenden von HTTP-Anfragen.
-import urllib.request
-
-# Ermöglicht die Behandlung von HTTP-Fehlern.
-import urllib.error
-
-# Ermöglicht die Ausführung blockierender Funktionen im Hintergrund.
-import asyncio
-
 from rich.text import Text
 
 # Importiert die benötigten Bestandteile von Textual.
@@ -30,81 +18,12 @@ from textual.widgets import (
     TabPane,
 )
 
-from textual.screen import ModalScreen
-
 # Importiert unsere Konfigurationsverwaltung.
 from config import load_config
 
 # Importiert die Verwaltung unserer Hintergrundprozesse.
 from core.script_manager import ScriptManager
 
-class PostRequestScreen(ModalScreen[dict | None]):
-    """Dialog zur Eingabe variabler POST-Parameter."""
-
-    def __init__(self, post_request: dict):
-        """Übernimmt die Swagger-Aktion und ihre abzufragenden Felder."""
-
-        super().__init__()
-
-        self.post_request = post_request
-        self.prompt_fields = post_request.get("prompt_fields", {})
-
-    def compose(self) -> ComposeResult:
-        """Erstellt das Eingabefenster."""
-
-        with Vertical():
-
-            yield Static("POST-Parameter bearbeiten")
-
-            # Erstellt für jedes konfigurierte Feld eine Eingabe.
-            for field_name, label in self.prompt_fields.items():
-
-                current_value = self.post_request.get(
-                    "payload", {}
-                ).get(field_name, "")
-
-                yield Static(label)
-
-                yield Input(
-                    value=str(current_value),
-                    id=f"post-input-{field_name}",
-                )
-
-            with Horizontal():
-
-                yield Button(
-                    "Senden",
-                    id="submit",
-                    variant="success",
-                )
-
-                yield Button(
-                    "Abbrechen",
-                    id="cancel",
-                )
-
-    def on_button_pressed(self, event: Button.Pressed) -> None:
-        """Verarbeitet die Dialog-Buttons."""
-
-        if event.button.id == "submit":
-
-            # Sammelt alle eingegebenen Werte.
-            values = {}
-
-            for field_name in self.prompt_fields:
-
-                values[field_name] = self.query_one(
-                    f"#post-input-{field_name}",
-                    Input,
-                ).value.strip()
-
-            # Übergibt die Werte an die aufrufende Anwendung.
-            self.dismiss(values)
-
-        elif event.button.id == "cancel":
-
-            # Schließt den Dialog ohne Änderungen.
-            self.dismiss(None)
 
 class PowerScriptApp(App):
     """Hauptklasse unserer terminalbasierten Anwendung."""
@@ -138,9 +57,6 @@ class PowerScriptApp(App):
 
         # Speichert die zusätzlich konfigurierten Tools.
         self.tools = self.config.get("tools", [])
-
-        # Speichert die zusätzlich konfigurierten POST-Aktionen.
-        self.post_requests = self.config.get("post_requests", [])
 
         # Führt Skripte und Tools für die Prozessverwaltung zusammen.
         self.all_scripts = self.scripts + self.tools
@@ -258,18 +174,15 @@ class PowerScriptApp(App):
         # Aktualisiert die sichtbare Menüanzeige.
         self.refresh_menu()
 
-
     def compose(self) -> ComposeResult:
         """Erstellt die sichtbaren Elemente der Anwendung."""
 
         # Erstellt die Kopfzeile.
         yield Header()
 
-        # Liest die Einstellungen für die zusätzlichen Bereiche.
+        # Liest die Einstellung für den zusätzlichen Menübereich.
         settings = self.config["settings"]
         show_tools = settings["show_tools"]
-        show_post_requests = settings["show_post_requests"]
-
 
         # Ordnet den gesamten Menübereich und den Tab-Bereich nebeneinander an.
         with Horizontal():
@@ -291,46 +204,27 @@ class PowerScriptApp(App):
                                 id=f"script-button-{number}",
                             )
 
-                    # Rechte Spalte nur anzeigen, wenn mindestens ein Bereich aktiv ist.
-                    if show_tools or show_post_requests:
+                    # Rechte Spalte nur anzeigen, wenn Tools aktiviert sind.
+                    if show_tools:
 
                         with Vertical(id="additional-menu"):
 
                             # Erstellt für jedes konfigurierte Tool einen eigenen Button.
-                            if show_tools:
+                            yield Static("[b]Tools[/b]")
 
-                                yield Static("[b]Tools[/b]")
+                            for number, tool in enumerate(self.tools, start=1):
 
-                                for number, tool in enumerate(self.tools, start=1):
-
-                                    yield Button(
-                                        self.build_script_button_label(tool["name"]),
-                                        id=f"tool-button-{number}",
-                                    )
-
-
-                            # Zeigt die konfigurierten POST-Aktionen an.
-                            if show_post_requests:
-
-                                yield Static("[b]Swagger-Aktionen[/b]")
-
-                                # Erstellt für jede POST-Aktion einen eigenen Button.
-                                for number, post_request in enumerate(
-                                    self.post_requests,
-                                    start=1
-                                ):
-
-                                    yield Button(
-                                        post_request["name"],
-                                        id=f"post-request-button-{number}",
-                                    )
+                                yield Button(
+                                    self.build_script_button_label(tool["name"]),
+                                    id=f"tool-button-{number}",
+                                )
 
                 # Unterer Bereich für allgemeine Systemfunktionen.
                 with Vertical(id="system-menu"):
 
-                    # Wenn beide Menübereiche angezeigt werden,
+                    # Wenn Tools angezeigt werden,
                     # stehen die System-Buttons nebeneinander.
-                    if show_tools or show_post_requests:
+                    if show_tools:
 
                         with Horizontal():
 
@@ -358,7 +252,6 @@ class PowerScriptApp(App):
                             id="quit-button",
                         )
 
-
             # Erstellt den Tab-Container rechts neben dem Menübereich.
             with TabbedContent(id="script-tabs"):
 
@@ -368,10 +261,8 @@ class PowerScriptApp(App):
                     # Hier erscheinen allgemeine Meldungen und Fehler.
                     yield RichLog(id="system-log", markup=True)
 
-
         # Erstellt die Fußzeile.
         yield Footer()
-
 
     def on_mount(self) -> None:
         """Wird nach dem Aufbau der Oberfläche ausgeführt."""
@@ -392,7 +283,7 @@ class PowerScriptApp(App):
         self.query_one("#system-menu", Vertical).styles.border = ("round", "yellow")
 
         # Setzt den Rahmen-Titel der rechten Spalte, sofern sie existiert.
-        if self.config["settings"]["show_tools"] or self.config["settings"]["show_post_requests"]:
+        if self.config["settings"]["show_tools"]:
             self.query_one("#additional-menu", Vertical).border_title = "Weiteres"
 
         # Setzt den Rahmen-Titel des System-Logs.
@@ -584,36 +475,6 @@ class PowerScriptApp(App):
 
             self.action_clear_log()
 
-        
-        # Prüft, ob eine POST-Aktion angeklickt wurde.
-        elif button_id and button_id.startswith("post-request-button-"):
-
-            # Ermittelt die Nummer der ausgewählten POST-Aktion.
-            number = int(button_id.replace("post-request-button-", ""))
-
-            # Holt die zugehörige POST-Aktion aus der Konfiguration.
-            post_request = self.post_requests[number - 1]
-
-            # Prüft, ob Eingaben vor dem POST-Aufruf erforderlich sind.
-            if post_request.get("prompt_fields"):
-
-                # Öffnet das Dialogfenster und verarbeitet anschließend die Eingaben.
-                self.push_screen(
-                    PostRequestScreen(post_request),
-                    callback=lambda values: self.handle_post_request_result(
-                        values,
-                        post_request,
-                    ),
-                )
-
-            else:
-
-                # Startet den POST-Aufruf direkt, wenn keine Eingaben erforderlich sind.
-                self.run_worker(
-                    self.send_post_request(post_request)
-                )
-
-
         # Prüft, ob der Beenden-Button angeklickt wurde.
         elif button_id == "quit-button":
 
@@ -728,120 +589,6 @@ class PowerScriptApp(App):
 
         # Entfernt alle bisherigen Einträge im System-Tab.
         self.query_one("#system-log", RichLog).clear()
-
-    def handle_post_request_result(
-        self,
-        values: dict | None,
-        post_request: dict,
-    ) -> None:
-        """Verarbeitet die Eingaben aus dem POST-Dialog."""
-
-        # Prüft, ob der Nutzer den Vorgang abgebrochen hat.
-        if values is None:
-            self.write_log(
-                "SYSTEM",
-                f"{post_request['name']}: Vorgang abgebrochen."
-            )
-            return
-
-        # Erstellt eine Kopie der POST-Aktion.
-        request_data = post_request.copy()
-
-        # Erstellt eine eigene Kopie des Payloads.
-        request_data["payload"] = post_request.get(
-            "payload", {}
-        ).copy()
-
-        # Übernimmt die eingegebenen Werte in den Payload.
-        request_data["payload"].update(values)
-
-        # Entfernt die Dialog-Konfiguration aus der Anfrage.
-        request_data.pop("prompt_fields", None)
-
-        # Startet den POST-Aufruf mit den angepassten Werten.
-        self.run_worker(
-            self.send_post_request(request_data)
-        )
-
-    async def send_post_request(self, post_request: dict) -> None:
-        """Sendet eine konfigurierte POST-Anfrage."""
-
-        # Liest die Daten der POST-Aktion.
-        url = post_request["url"]
-        headers = post_request.get("headers", {})
-        payload = post_request.get("payload", {})
-
-        # Wandelt den Payload in JSON um.
-        json_data = json.dumps(payload).encode("utf-8")
-
-        # Erstellt die HTTP-Anfrage.
-        request = urllib.request.Request(
-            url,
-            data=json_data,
-            headers=headers,
-            method="POST",
-        )
-
-        # Meldet den Beginn der Anfrage.
-        self.write_log(
-            "SYSTEM",
-            f"{post_request['name']}: POST-Anfrage wird gesendet."
-        )
-
-        try:
-            # Führt den HTTP-Aufruf außerhalb des UI-Threads aus.
-            status_code, response_body = await asyncio.to_thread(
-                self._execute_post_request,
-                request,
-            )
-
-            # Meldet das Ergebnis.
-            self.write_log(
-                "SYSTEM",
-                f"{post_request['name']}: HTTP {status_code}"
-            )
-
-            # Zeigt die Serverantwort an, sofern vorhanden.
-            if response_body:
-                self.write_log(
-                    "SYSTEM",
-                    f"Serverantwort: {response_body}"
-                )
-
-        except Exception as error:
-            # Meldet einen Fehler beim Versenden.
-            self.write_log(
-                "ERROR",
-                f"{post_request['name']}: {error}"
-            )
-
-    def _execute_post_request(self, request):
-        """Führt den HTTP-Aufruf aus und liefert Status und Antwort zurück."""
-
-        try:
-            # Sendet die Anfrage mit einem Timeout von 30 Sekunden.
-            with urllib.request.urlopen(request, timeout=30) as response:
-
-                # Liest die Antwort des Servers.
-                response_body = response.read().decode("utf-8", errors="replace")
-
-                return response.status, response_body
-
-        except urllib.error.HTTPError as error:
-
-            # Liest auch den Antworttext bei HTTP-Fehlern.
-            response_body = error.read().decode("utf-8", errors="replace")
-
-            raise RuntimeError(
-                f"HTTP {error.code}: {response_body}"
-            ) from error
-
-        except urllib.error.URLError as error:
-
-            # Gibt die Ursache des Verbindungsfehlers weiter.
-            raise RuntimeError(
-                f"Verbindungsfehler: {error.reason}"
-            ) from error
 
     async def start_script_with_tab(self, script: dict) -> None:
         """Erstellt den Tab und startet anschließend das Skript."""

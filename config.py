@@ -34,35 +34,34 @@ def load_config():
     # Öffnet die TOML-Datei im Binärmodus ("rb").
     # tomllib benötigt diesen Modus zum Einlesen der Datei.
     with CONFIG_PATH.open("rb") as file:
+
         # Liest den Inhalt der Datei und wandelt ihn
         # in eine Python-Datenstruktur (Dictionary) um.
         config = tomllib.load(file)
 
-        # Holt die allgemeinen Einstellungen aus der Konfiguration.
-        # Fehlt der Bereich, wird ein leeres Dictionary verwendet.
-        settings = config.get("settings", {})
+    # Holt die allgemeinen Einstellungen aus der Konfiguration.
+    # Fehlt der Bereich, wird ein leeres Dictionary verwendet.
+    settings = config.get("settings", {})
 
-        # Prüft, ob der Einstellungsbereich gültig ist.
-        if not isinstance(settings, dict):
-            raise ValueError(
-                "Der Bereich 'settings' muss ein gültiger Abschnitt sein."
-            )
+    # Prüft, ob der Einstellungsbereich gültig ist.
+    if not isinstance(settings, dict):
+        raise ValueError(
+            "Der Bereich 'settings' muss ein gültiger Abschnitt sein."
+        )
 
-        # Prüft beide Schalter und verwendet standardmäßig False.
-        for setting_name in ("show_tools", "show_post_requests"):
+    # Prüft den Schalter für die Anzeige der Tools.
+    # Standardmäßig werden die Tools nicht angezeigt.
+    show_tools = settings.get("show_tools", False)
 
-            # Liest den jeweiligen Wert aus der Konfiguration.
-            setting_value = settings.get(setting_name, False)
+    # Prüft, ob tatsächlich true oder false angegeben wurde.
+    if not isinstance(show_tools, bool):
+        raise ValueError(
+            "Ungültiger Wert für 'show_tools'. "
+            "Erlaubt sind nur true oder false."
+        )
 
-            # Prüft, ob tatsächlich true oder false angegeben wurde.
-            if not isinstance(setting_value, bool):
-                raise ValueError(
-                    f"Ungültiger Wert für '{setting_name}'. "
-                    "Erlaubt sind nur true oder false."
-                )
-
-            # Speichert den geprüften Wert.
-            settings[setting_name] = setting_value
+    # Speichert den geprüften Wert.
+    settings["show_tools"] = show_tools
 
     # Speichert die Einstellungen zurück in der Gesamtkonfiguration.
     config["settings"] = settings
@@ -128,7 +127,7 @@ def load_config():
         # Speichert den geprüften Wert im Skripteintrag.
         script["allow_manual_stop"] = allow_manual_stop
 
-        # Holt alle konfigurierten Tools aus der Konfiguration.
+    # Holt alle konfigurierten Tools aus der Konfiguration.
     # Wenn keine Tools vorhanden sind, wird eine leere Liste verwendet.
     tools = config.get("tools", [])
 
@@ -186,61 +185,8 @@ def load_config():
         # Speichert den geprüften Wert im Tool-Eintrag.
         tool["allow_manual_stop"] = allow_manual_stop
 
-
-    # Speichert die geprüften Tools zurück in die Gesamtkonfiguration.
+    # Speichert die geprüften Tools zurück in der Gesamtkonfiguration.
     config["tools"] = tools
-
-    # Holt alle konfigurierten POST-Aktionen.
-    post_requests = config.get("post_requests", [])
-
-    # Prüft, ob der Eintrag eine Liste ist.
-    if not isinstance(post_requests, list):
-        raise ValueError(
-            "Der Bereich 'post_requests' muss eine gültige Liste sein."
-        )
-
-    # Geht alle POST-Aktionen einzeln durch.
-    for index, post_request in enumerate(post_requests, start=1):
-
-        # Jeder Eintrag muss ein Dictionary sein.
-        if not isinstance(post_request, dict):
-            raise ValueError(
-                f"POST-Aktion {index} ist kein gültiger Eintrag."
-            )
-
-        # Prüft, ob ein Name vorhanden ist.
-        if not post_request.get("name"):
-            raise ValueError(
-                f"POST-Aktion {index} hat keinen Namen."
-            )
-
-        # Prüft, ob eine URL vorhanden ist.
-        if not post_request.get("url"):
-            raise ValueError(
-                f"POST-Aktion '{post_request['name']}' hat keine URL."
-            )
-
-        # Prüft die Header.
-        headers = post_request.get("headers", {})
-
-        if not isinstance(headers, dict):
-            raise ValueError(
-                f"Die Header der POST-Aktion '{post_request['name']}' "
-                "müssen ein Dictionary sein."
-            )
-
-        # Prüft den Payload.
-        payload = post_request.get("payload", {})
-
-        if not isinstance(payload, dict):
-            raise ValueError(
-                f"Der Payload der POST-Aktion '{post_request['name']}' "
-                "muss ein Dictionary sein."
-            )
-
-    # Speichert die geprüften POST-Aktionen zurück.
-    config["post_requests"] = post_requests
 
     # Gibt die vollständige Konfiguration an den Aufrufer zurück.
     return config
-
