@@ -47,12 +47,10 @@ class ScriptManager:
 
         try:
             # Baut den Windows-Befehl zusammen.
-            # Erstellt den CMD-Befehl.
             # Die Anführungszeichen schützen auch Pfade mit Leerzeichen.
             command = f'cmd.exe /d /c call "{path}"'
 
             # Startet CMD direkt mit dem vorbereiteten Befehlsstring.
-            # shell=False verhindert eine zusätzliche Shell-Ebene.
             process = subprocess.Popen(
                 command,
 
@@ -81,10 +79,9 @@ class ScriptManager:
                 shell=False,
 
                 # Verwendet das Verzeichnis der gestarteten BAT-Datei
-                # als Arbeitsverzeichnis für alle darin ausgeführten Befehle.
+                # als Arbeitsverzeichnis.
                 cwd=str(path.parent),
             )
-
 
             # Speichert den gestarteten Prozess.
             self.processes[name] = process
@@ -95,7 +92,6 @@ class ScriptManager:
             )
 
             # Startet einen eigenen Thread zum Auslesen der Ausgabe.
-            # Dadurch bleibt die Benutzeroberfläche bedienbar.
             reader = threading.Thread(
                 target=self._read_output,
                 args=(name, process),
@@ -111,7 +107,6 @@ class ScriptManager:
                 ("error", name, f"Start fehlgeschlagen: {error}")
             )
 
-    
     def _read_output(self, name: str, process):
         """Liest die Prozessausgabe und erkennt eine Pause."""
 
@@ -119,15 +114,15 @@ class ScriptManager:
         line_buffer = ""
 
         # Speichert einen kurzen Ausschnitt der letzten Ausgabe.
-        # Damit können wir auch Aufforderungen ohne Zeilenumbruch erkennen.
         recent_output = ""
 
         # Verhindert, dass WAITING mehrfach gemeldet wird.
         waiting_detected = False
 
+        return_code = None
+
         try:
             # Liest die Ausgabe zeichenweise statt zeilenweise.
-            # Dadurch erkennen wir auch Text ohne abschließenden Zeilenumbruch.
             while True:
                 character = process.stdout.read(1)
 
@@ -196,20 +191,46 @@ class ScriptManager:
                     ("output", name, remaining_text)
                 )
 
-            # Wartet auf das tatsächliche Ende des Prozesses.
-            return_code = process.wait()
-
-            # Meldet der Oberfläche das Prozessende.
-            self.messages.put(
-                ("finished", name, f"Prozess beendet. Exit-Code: {return_code}")
-            )
-
         except OSError as error:
             # Meldet Probleme beim Lesen der Prozessausgabe.
             self.messages.put(
                 ("error", name, f"Fehler beim Lesen: {error}")
             )
 
+        finally:
+            # Wartet auf das tatsächliche Ende des Prozesses.
+            try:
+                return_code = process.wait()
+
+            except OSError as error:
+                self.messages.put(
+                    ("error", name, f"Fehler beim Warten auf Prozessende: {error}")
+                )
+
+            # Schließt die Eingabepipe.
+            if process.stdin is not None:
+                try:
+                    process.stdin.close()
+                except (OSError, ValueError):
+                    pass
+
+            # Schließt die Ausgabepipe.
+            if process.stdout is not None:
+                try:
+                    process.stdout.close()
+                except (OSError, ValueError):
+                    pass
+
+            # Entfernt den Prozess nur dann aus dem Register,
+            # wenn dort noch genau dieser Prozess gespeichert ist.
+            if self.processes.get(name) is process:
+                self.processes.pop(name, None)
+
+            # Meldet der Oberfläche das Prozessende.
+            if return_code is not None:
+                self.messages.put(
+                    ("finished", name, f"Prozess beendet. Exit-Code: {return_code}")
+                )
 
     def stop_script(self, name: str) -> bool:
         """Beendet ein freigegebenes Skript einschließlich seiner Unterprozesse."""
@@ -249,8 +270,12 @@ class ScriptManager:
         # Sammelt alle Nachrichten, ohne auf neue warten zu müssen.
         collected = []
 
-        # Liest so lange Nachrichten aus, bis die Warteschlange leer ist.
-        while not self.messages.empty():
-            collected.append(self.messages.get())
+        # Holt Nachrichten einzeln ab, bis die Warteschlange leer ist.
+        while True:
+            try:
+                collected.append(self.messages.get_nowait())
+
+            except queue.Empty:
+                break
 
         return collected
