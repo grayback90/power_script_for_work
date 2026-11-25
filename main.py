@@ -30,12 +30,81 @@ from textual.widgets import (
     TabPane,
 )
 
+from textual.screen import ModalScreen
+
 # Importiert unsere Konfigurationsverwaltung.
 from config import load_config
 
 # Importiert die Verwaltung unserer Hintergrundprozesse.
 from core.script_manager import ScriptManager
 
+class PostRequestScreen(ModalScreen[dict | None]):
+    """Dialog zur Eingabe variabler POST-Parameter."""
+
+    def __init__(self, post_request: dict):
+        """Übernimmt die Swagger-Aktion und ihre abzufragenden Felder."""
+
+        super().__init__()
+
+        self.post_request = post_request
+        self.prompt_fields = post_request.get("prompt_fields", {})
+
+    def compose(self) -> ComposeResult:
+        """Erstellt das Eingabefenster."""
+
+        with Vertical():
+
+            yield Static("POST-Parameter bearbeiten")
+
+            # Erstellt für jedes konfigurierte Feld eine Eingabe.
+            for field_name, label in self.prompt_fields.items():
+
+                current_value = self.post_request.get(
+                    "payload", {}
+                ).get(field_name, "")
+
+                yield Static(label)
+
+                yield Input(
+                    value=str(current_value),
+                    id=f"post-input-{field_name}",
+                )
+
+            with Horizontal():
+
+                yield Button(
+                    "Senden",
+                    id="submit",
+                    variant="success",
+                )
+
+                yield Button(
+                    "Abbrechen",
+                    id="cancel",
+                )
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        """Verarbeitet die Dialog-Buttons."""
+
+        if event.button.id == "submit":
+
+            # Sammelt alle eingegebenen Werte.
+            values = {}
+
+            for field_name in self.prompt_fields:
+
+                values[field_name] = self.query_one(
+                    f"#post-input-{field_name}",
+                    Input,
+                ).value.strip()
+
+            # Übergibt die Werte an die aufrufende Anwendung.
+            self.dismiss(values)
+
+        elif event.button.id == "cancel":
+
+            # Schließt den Dialog ohne Änderungen.
+            self.dismiss(None)
 
 class PowerScriptApp(App):
     """Hauptklasse unserer terminalbasierten Anwendung."""
@@ -243,7 +312,7 @@ class PowerScriptApp(App):
                             # Zeigt die konfigurierten POST-Aktionen an.
                             if show_post_requests:
 
-                                yield Static("[b]POST-Aktionen[/b]")
+                                yield Static("[b]Swagger-Aktionen[/b]")
 
                                 # Erstellt für jede POST-Aktion einen eigenen Button.
                                 for number, post_request in enumerate(
@@ -525,10 +594,24 @@ class PowerScriptApp(App):
             # Holt die zugehörige POST-Aktion aus der Konfiguration.
             post_request = self.post_requests[number - 1]
 
-            # Startet den POST-Aufruf im Hintergrund.
-            self.run_worker(
-                self.send_post_request(post_request)
-            )
+            # Prüft, ob Eingaben vor dem POST-Aufruf erforderlich sind.
+            if post_request.get("prompt_fields"):
+
+                # Öffnet das Dialogfenster und verarbeitet anschließend die Eingaben.
+                self.push_screen(
+                    PostRequestScreen(post_request),
+                    callback=lambda values: self.handle_post_request_result(
+                        values,
+                        post_request,
+                    ),
+                )
+
+            else:
+
+                # Startet den POST-Aufruf direkt, wenn keine Eingaben erforderlich sind.
+                self.run_worker(
+                    self.send_post_request(post_request)
+                )
 
 
         # Prüft, ob der Beenden-Button angeklickt wurde.
@@ -645,6 +728,40 @@ class PowerScriptApp(App):
 
         # Entfernt alle bisherigen Einträge im System-Tab.
         self.query_one("#system-log", RichLog).clear()
+
+    def handle_post_request_result(
+        self,
+        values: dict | None,
+        post_request: dict,
+    ) -> None:
+        """Verarbeitet die Eingaben aus dem POST-Dialog."""
+
+        # Prüft, ob der Nutzer den Vorgang abgebrochen hat.
+        if values is None:
+            self.write_log(
+                "SYSTEM",
+                f"{post_request['name']}: Vorgang abgebrochen."
+            )
+            return
+
+        # Erstellt eine Kopie der POST-Aktion.
+        request_data = post_request.copy()
+
+        # Erstellt eine eigene Kopie des Payloads.
+        request_data["payload"] = post_request.get(
+            "payload", {}
+        ).copy()
+
+        # Übernimmt die eingegebenen Werte in den Payload.
+        request_data["payload"].update(values)
+
+        # Entfernt die Dialog-Konfiguration aus der Anfrage.
+        request_data.pop("prompt_fields", None)
+
+        # Startet den POST-Aufruf mit den angepassten Werten.
+        self.run_worker(
+            self.send_post_request(request_data)
+        )
 
     async def send_post_request(self, post_request: dict) -> None:
         """Sendet eine konfigurierte POST-Anfrage."""

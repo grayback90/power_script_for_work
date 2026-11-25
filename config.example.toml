@@ -8,7 +8,6 @@ title = "Config File"
 
 [settings]
 show_tools = true
-show_post_requests = true
 
 
 # ==========================================
@@ -37,31 +36,3 @@ path = "scripts/example.cmd"
 [[tools]]
 name = "Beispiel für relativen Pfad"
 path = "scripts/example.cmd"
-
-
-# ==========================================
-# POST-Aktionen
-# ==========================================
-
-[[post_requests]]
-name = "Testdaten laden"
-url = "https://example.com/api/testdata"
-
-[post_requests.headers]
-Content-Type = "application/json"
-
-[post_requests.payload]
-environment = "local"
-action = "load_testdata"
-enabled = true
-
-
-[[post_requests]]
-name = "Testdaten zurücksetzen"
-url = "https://example.com/api/reset"
-
-[post_requests.headers]
-Content-Type = "application/json"
-
-[post_requests.payload]
-action = "reset"
