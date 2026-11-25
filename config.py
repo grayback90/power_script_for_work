@@ -67,7 +67,6 @@ def load_config():
     config["settings"] = settings
 
     # Holt alle konfigurierten Skripte aus der Konfiguration.
-    # get() liefert None zurück, wenn der Eintrag nicht existiert.
     scripts = config.get("scripts")
 
     # Prüft, ob der Eintrag "scripts" vorhanden und eine Liste ist.
@@ -78,7 +77,6 @@ def load_config():
         )
 
     # Geht alle konfigurierten Skripte einzeln durch.
-    # enumerate() liefert zusätzlich eine laufende Nummer.
     for index, script in enumerate(scripts, start=1):
 
         # Jeder Skripteintrag muss ein Dictionary sein.
@@ -109,11 +107,9 @@ def load_config():
             script_path = PROJECT_DIR / script_path
 
         # Löst den Pfad vollständig auf und speichert ihn zurück.
-        # Dadurch enthält die Konfiguration anschließend immer
-        # einen absoluten Pfad, unabhängig von der ursprünglichen Eingabe.
         script["path"] = script_path.resolve()
 
-        # Prüft, ob der optionale Parameter allow_manual_stop vorhanden ist.
+        # Prüft den optionalen Parameter allow_manual_stop.
         # Wenn er fehlt, wird standardmäßig False verwendet.
         allow_manual_stop = script.get("allow_manual_stop", False)
 
@@ -184,6 +180,47 @@ def load_config():
 
         # Speichert den geprüften Wert im Tool-Eintrag.
         tool["allow_manual_stop"] = allow_manual_stop
+
+    # Prüft, ob alle Skripte und Tools eindeutige Namen besitzen.
+    # Die Prüfung berücksichtigt auch Groß- und Kleinschreibung.
+    used_names = set()
+
+    # Führt Skripte und Tools für die Namensprüfung zusammen.
+    all_entries = scripts + tools
+
+    # Prüft jeden Eintrag auf einen gültigen und eindeutigen Namen.
+    for entry in all_entries:
+
+        # Prüft zuerst den Datentyp des Namens.
+        if not isinstance(entry["name"], str):
+            raise ValueError(
+                "Skript- und Tool-Namen müssen gültige Texte sein."
+            )
+
+        # Entfernt überflüssige Leerzeichen.
+        name = entry["name"].strip()
+
+        # Prüft, ob der Name nach dem Bereinigen noch Inhalt besitzt.
+        if not name:
+            raise ValueError(
+                "Skript- und Tool-Namen dürfen nicht leer sein."
+            )
+
+        # Vereinheitlicht den Namen für den Vergleich.
+        normalized_name = name.casefold()
+
+        # Prüft, ob dieser Name bereits verwendet wird.
+        if normalized_name in used_names:
+            raise ValueError(
+                f"Der Name '{name}' ist mehrfach vergeben. "
+                "Skript- und Tool-Namen müssen eindeutig sein."
+            )
+
+        # Speichert den Namen für die weiteren Prüfungen.
+        used_names.add(normalized_name)
+
+        # Übernimmt den bereinigten Namen in die Konfiguration.
+        entry["name"] = name
 
     # Speichert die geprüften Tools zurück in der Gesamtkonfiguration.
     config["tools"] = tools
