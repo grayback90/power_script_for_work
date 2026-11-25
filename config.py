@@ -38,6 +38,35 @@ def load_config():
         # in eine Python-Datenstruktur (Dictionary) um.
         config = tomllib.load(file)
 
+        # Holt die allgemeinen Einstellungen aus der Konfiguration.
+        # Fehlt der Bereich, wird ein leeres Dictionary verwendet.
+        settings = config.get("settings", {})
+
+        # Prüft, ob der Einstellungsbereich gültig ist.
+        if not isinstance(settings, dict):
+            raise ValueError(
+                "Der Bereich 'settings' muss ein gültiger Abschnitt sein."
+            )
+
+        # Prüft beide Schalter und verwendet standardmäßig False.
+        for setting_name in ("show_tools", "show_post_requests"):
+
+            # Liest den jeweiligen Wert aus der Konfiguration.
+            setting_value = settings.get(setting_name, False)
+
+            # Prüft, ob tatsächlich true oder false angegeben wurde.
+            if not isinstance(setting_value, bool):
+                raise ValueError(
+                    f"Ungültiger Wert für '{setting_name}'. "
+                    "Erlaubt sind nur true oder false."
+                )
+
+            # Speichert den geprüften Wert.
+            settings[setting_name] = setting_value
+
+    # Speichert die Einstellungen zurück in der Gesamtkonfiguration.
+    config["settings"] = settings
+
     # Holt alle konfigurierten Skripte aus der Konfiguration.
     # get() liefert None zurück, wenn der Eintrag nicht existiert.
     scripts = config.get("scripts")
@@ -98,6 +127,67 @@ def load_config():
 
         # Speichert den geprüften Wert im Skripteintrag.
         script["allow_manual_stop"] = allow_manual_stop
+
+        # Holt alle konfigurierten Tools aus der Konfiguration.
+    # Wenn keine Tools vorhanden sind, wird eine leere Liste verwendet.
+    tools = config.get("tools", [])
+
+    # Prüft, ob der Eintrag eine Liste ist.
+    if not isinstance(tools, list):
+        raise ValueError(
+            "Der Bereich 'tools' muss eine gültige Liste enthalten."
+        )
+
+    # Geht alle konfigurierten Tools einzeln durch.
+    for index, tool in enumerate(tools, start=1):
+
+        # Jeder Tool-Eintrag muss ein Dictionary sein.
+        if not isinstance(tool, dict):
+            raise ValueError(
+                f"Tool {index} ist kein gültiger Eintrag."
+            )
+
+        # Prüft, ob das Tool einen Namen besitzt.
+        if not tool.get("name"):
+            raise ValueError(
+                f"Tool {index} hat keinen Namen."
+            )
+
+        # Prüft, ob ein Dateipfad angegeben wurde.
+        if not tool.get("path"):
+            raise ValueError(
+                f"Tool '{tool['name']}' hat keinen Pfad."
+            )
+
+        # Wandelt den angegebenen Pfad in ein Path-Objekt um.
+        tool_path = Path(tool["path"])
+
+        # Prüft, ob der angegebene Pfad bereits absolut ist.
+        if not tool_path.is_absolute():
+
+            # Relative Pfade werden auf das Projektverzeichnis bezogen.
+            tool_path = PROJECT_DIR / tool_path
+
+        # Löst den Pfad vollständig auf und speichert ihn zurück.
+        tool["path"] = tool_path.resolve()
+
+        # Liest den optionalen Parameter allow_manual_stop.
+        # Standardmäßig ist das manuelle Beenden nicht erlaubt.
+        allow_manual_stop = tool.get("allow_manual_stop", False)
+
+        # Prüft, ob der Parameter tatsächlich einen Boolean enthält.
+        if not isinstance(allow_manual_stop, bool):
+            raise ValueError(
+                f"Ungültiger Wert für allow_manual_stop "
+                f"bei Tool '{tool['name']}'. "
+                "Erlaubt sind nur true oder false."
+            )
+
+        # Speichert den geprüften Wert im Tool-Eintrag.
+        tool["allow_manual_stop"] = allow_manual_stop
+
+    # Speichert die geprüften Tools zurück in der Gesamtkonfiguration.
+    config["tools"] = tools
 
     # Gibt die vollständige Konfiguration an den Aufrufer zurück.
     return config

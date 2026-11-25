@@ -149,20 +149,23 @@ class PowerScriptApp(App):
         # Aktualisiert die sichtbare Menüanzeige.
         self.refresh_menu()
 
+
     def compose(self) -> ComposeResult:
         """Erstellt die sichtbaren Elemente der Anwendung."""
 
         # Erstellt die Kopfzeile.
         yield Header()
 
-        # Ordnet Menü und Tab-Bereich nebeneinander an.
+        # Liest die Einstellungen für die zusätzlichen Bereiche.
+        settings = self.config["settings"]
+        show_tools = settings["show_tools"]
+        show_post_requests = settings["show_post_requests"]
+
+        # Ordnet die beiden Menüspalten und den Tab-Bereich nebeneinander an.
         with Horizontal():
 
-            # Erstellt das Menü mit den Skript-Buttons.
-            with Vertical(id="menu"):
-
-                # Überschrift des Menüs.
-                yield Static("[b]Scripts[/b]")
+            # Linke Spalte: Skripte.
+            with Vertical(id="scripts-menu"):
 
                 # Erstellt für jedes konfigurierte Skript einen Button.
                 for number, script in enumerate(self.scripts, start=1):
@@ -171,9 +174,6 @@ class PowerScriptApp(App):
                         self.build_script_button_label(script["name"]),
                         id=f"script-button-{number}",
                     )
-
-                # Bereich für weitere Funktionen.
-                yield Static("[b]Other[/b]")
 
                 # Button zum Leeren des System-Logs.
                 yield Button(
@@ -187,6 +187,19 @@ class PowerScriptApp(App):
                     id="quit-button",
                 )
 
+            # Rechte Spalte nur anzeigen, wenn mindestens ein Bereich aktiv ist.
+            if show_tools or show_post_requests:
+
+                with Vertical(id="additional-menu"):
+
+                    # Platz für die konfigurierten Tools.
+                    if show_tools:
+                        yield Static("[b]Tools[/b]")
+
+                    # Platz für die konfigurierten POST-Aktionen.
+                    if show_post_requests:
+                        yield Static("[b]POST-Aktionen[/b]")
+
             # Erstellt den Tab-Container.
             with TabbedContent(id="script-tabs"):
 
@@ -199,6 +212,7 @@ class PowerScriptApp(App):
         # Erstellt die Fußzeile.
         yield Footer()
 
+
     def on_mount(self) -> None:
         """Wird nach dem Aufbau der Oberfläche ausgeführt."""
 
@@ -208,8 +222,12 @@ class PowerScriptApp(App):
         # Gibt dem System-Tab die erste Tab-Farbe.
         self.query_one("#--content-tab-system-tab").add_class("tab-color-blue")
 
-        # Setzt den Rahmen-Titel des Menüs.
-        self.query_one("#menu", Vertical).border_title = "Menu"
+        # Setzt den Rahmen-Titel der linken Spalte.
+        self.query_one("#scripts-menu", Vertical).border_title = "Skripte"
+
+        # Setzt den Rahmen-Titel der rechten Spalte, sofern sie existiert.
+        if self.config["settings"]["show_tools"] or self.config["settings"]["show_post_requests"]:
+            self.query_one("#additional-menu", Vertical).border_title = "Weiteres"
 
         # Setzt den Rahmen-Titel des System-Logs.
         self.query_one("#system-log").border_title = "System Log"

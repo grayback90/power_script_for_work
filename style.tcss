@@ -1,6 +1,14 @@
-#menu {
-    width: 36;
+/* Linke Spalte mit den Skripten. */
+#scripts-menu {
+    width: 25;
     border: round cyan;
+    padding: 1 2;
+}
+
+/* Rechte Spalte mit zusätzlichen Funktionen. */
+#additional-menu {
+    width: 25;
+    border: round green;
     padding: 1 2;
 }
 
