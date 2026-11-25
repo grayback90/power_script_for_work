@@ -290,6 +290,10 @@ class PowerScriptApp(App):
         # Schreibt eine Startmeldung.
         self.write_log("SYSTEM", "Initialization finished")
 
+        # Gibt Warnungen zu fehlenden Skripten und Tools im System-Log aus.
+        for warning in self.config.get("_warnings", []):
+            self.write_log("ERROR", warning)
+
         # Prüft alle 0,1 Sekunden auf neue Prozessmeldungen.
         self.set_interval(0.1, self.check_process_messages)
 

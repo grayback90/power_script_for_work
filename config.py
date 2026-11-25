@@ -1,19 +1,15 @@
 
 # tomllib ist das Python-Modul zum Einlesen von TOML-Konfigurationsdateien.
-# Es ist ab Python 3.11 bereits Bestandteil von Python.
 import tomllib
 
 # Path erleichtert den Umgang mit Datei- und Verzeichnispfaden.
-# Es funktioniert auch mit Windows-Pfaden.
 from pathlib import Path
 
 
 # Ermittelt das Verzeichnis, in dem sich diese config.py befindet.
-# resolve() sorgt dafür, dass wir einen absoluten Pfad erhalten.
 PROJECT_DIR = Path(__file__).resolve().parent
 
-# Legt fest, wo unsere persönliche Konfigurationsdatei liegt.
-# Sie befindet sich direkt im Hauptverzeichnis des Projekts.
+# Legt fest, wo sich die persönliche Konfigurationsdatei befindet.
 CONFIG_PATH = PROJECT_DIR / "config.toml"
 
 
@@ -21,156 +17,160 @@ def load_config():
     """
     Lädt die Konfiguration aus der config.toml und überprüft deren Inhalt.
 
-    Relative Pfade werden dabei automatisch in absolute Pfade umgewandelt.
-    Die Funktion gibt anschließend die geladene Konfiguration zurück.
+    Relative Pfade werden automatisch in absolute Pfade umgewandelt.
+    Fehlende Skripte und Tools werden gemeldet und übersprungen.
     """
 
-    # Prüft zuerst, ob die Konfigurationsdatei überhaupt vorhanden ist.
+    # Prüft, ob die Konfigurationsdatei vorhanden ist.
     if not CONFIG_PATH.exists():
         raise FileNotFoundError(
             f"Konfigurationsdatei nicht gefunden: {CONFIG_PATH}"
         )
 
-    # Öffnet die TOML-Datei im Binärmodus ("rb").
-    # tomllib benötigt diesen Modus zum Einlesen der Datei.
+    # Liest die TOML-Datei ein.
     with CONFIG_PATH.open("rb") as file:
-
-        # Liest den Inhalt der Datei und wandelt ihn
-        # in eine Python-Datenstruktur (Dictionary) um.
         config = tomllib.load(file)
 
-    # Holt die allgemeinen Einstellungen aus der Konfiguration.
-    # Fehlt der Bereich, wird ein leeres Dictionary verwendet.
+    # Hier sammeln wir Warnungen zu fehlenden Skripten und Tools.
+    warnings = []
+
+    # Holt die allgemeinen Einstellungen.
     settings = config.get("settings", {})
 
-    # Prüft, ob der Einstellungsbereich gültig ist.
     if not isinstance(settings, dict):
         raise ValueError(
             "Der Bereich 'settings' muss ein gültiger Abschnitt sein."
         )
 
-    # Prüft den Schalter für die Anzeige der Tools.
-    # Standardmäßig werden die Tools nicht angezeigt.
+    # Prüft die Anzeige der zusätzlichen Tools.
     show_tools = settings.get("show_tools", False)
 
-    # Prüft, ob tatsächlich true oder false angegeben wurde.
     if not isinstance(show_tools, bool):
         raise ValueError(
             "Ungültiger Wert für 'show_tools'. "
             "Erlaubt sind nur true oder false."
         )
 
-    # Speichert den geprüften Wert.
     settings["show_tools"] = show_tools
-
-    # Speichert die Einstellungen zurück in der Gesamtkonfiguration.
     config["settings"] = settings
 
-    # Holt alle konfigurierten Skripte aus der Konfiguration.
+    # Holt die konfigurierten Skripte.
     scripts = config.get("scripts")
 
-    # Prüft, ob der Eintrag "scripts" vorhanden und eine Liste ist.
     if not isinstance(scripts, list):
         raise ValueError(
             "Die Konfiguration muss mindestens einen "
             "gültigen 'scripts'-Bereich enthalten."
         )
 
-    # Geht alle konfigurierten Skripte einzeln durch.
+    # Prüft alle Skripteinträge.
     for index, script in enumerate(scripts, start=1):
 
-        # Jeder Skripteintrag muss ein Dictionary sein.
         if not isinstance(script, dict):
             raise ValueError(
                 f"Skript {index} ist kein gültiger Eintrag."
             )
 
-        # Prüft, ob das Skript einen Namen besitzt.
-        if not script.get("name"):
+        if not isinstance(script.get("name"), str) or not script["name"].strip():
             raise ValueError(
-                f"Skript {index} hat keinen Namen."
+                f"Skript {index} hat keinen gültigen Namen."
             )
 
-        # Prüft, ob ein Dateipfad angegeben wurde.
         if not script.get("path"):
             raise ValueError(
                 f"Skript '{script['name']}' hat keinen Pfad."
             )
 
-        # Wandelt den angegebenen Pfad in ein Path-Objekt um.
+        # Wandelt den Pfad in ein Path-Objekt um.
         script_path = Path(script["path"])
 
-        # Prüft, ob der angegebene Pfad bereits absolut ist.
+        # Relative Pfade beziehen sich auf das Projektverzeichnis.
         if not script_path.is_absolute():
-
-            # Relative Pfade werden auf das Projektverzeichnis bezogen.
             script_path = PROJECT_DIR / script_path
 
-        # Löst den Pfad vollständig auf und speichert ihn zurück.
-        script["path"] = script_path.resolve()
+        # Speichert den vollständig aufgelösten Pfad.
+        script_path = script_path.resolve()
+        script["path"] = script_path
+
+        # Prüft, ob die Datei existiert und eine Datei ist.
+        if not script_path.exists():
+            script["_path_valid"] = False
+            warnings.append(
+                f"Skript '{script['name']}' wurde nicht gefunden: {script_path}"
+            )
+        elif not script_path.is_file():
+            script["_path_valid"] = False
+            warnings.append(
+                f"Der Pfad von Skript '{script['name']}' ist keine Datei: {script_path}"
+            )
+        else:
+            script["_path_valid"] = True
 
         # Prüft den optionalen Parameter allow_manual_stop.
-        # Wenn er fehlt, wird standardmäßig False verwendet.
         allow_manual_stop = script.get("allow_manual_stop", False)
 
-        # Prüft, ob der Parameter tatsächlich einen Boolean enthält.
         if not isinstance(allow_manual_stop, bool):
             raise ValueError(
                 f"Ungültiger Wert für allow_manual_stop bei Skript '{script['name']}'. "
                 "Erlaubt sind nur true oder false."
             )
 
-        # Speichert den geprüften Wert im Skripteintrag.
         script["allow_manual_stop"] = allow_manual_stop
 
-    # Holt alle konfigurierten Tools aus der Konfiguration.
-    # Wenn keine Tools vorhanden sind, wird eine leere Liste verwendet.
+    # Holt die konfigurierten Tools.
     tools = config.get("tools", [])
 
-    # Prüft, ob der Eintrag eine Liste ist.
     if not isinstance(tools, list):
         raise ValueError(
             "Der Bereich 'tools' muss eine gültige Liste enthalten."
         )
 
-    # Geht alle konfigurierten Tools einzeln durch.
+    # Prüft alle Tool-Einträge.
     for index, tool in enumerate(tools, start=1):
 
-        # Jeder Tool-Eintrag muss ein Dictionary sein.
         if not isinstance(tool, dict):
             raise ValueError(
                 f"Tool {index} ist kein gültiger Eintrag."
             )
 
-        # Prüft, ob das Tool einen Namen besitzt.
-        if not tool.get("name"):
+        if not isinstance(tool.get("name"), str) or not tool["name"].strip():
             raise ValueError(
-                f"Tool {index} hat keinen Namen."
+                f"Tool {index} hat keinen gültigen Namen."
             )
 
-        # Prüft, ob ein Dateipfad angegeben wurde.
         if not tool.get("path"):
             raise ValueError(
                 f"Tool '{tool['name']}' hat keinen Pfad."
             )
 
-        # Wandelt den angegebenen Pfad in ein Path-Objekt um.
+        # Wandelt den Pfad in ein Path-Objekt um.
         tool_path = Path(tool["path"])
 
-        # Prüft, ob der angegebene Pfad bereits absolut ist.
+        # Relative Pfade beziehen sich auf das Projektverzeichnis.
         if not tool_path.is_absolute():
-
-            # Relative Pfade werden auf das Projektverzeichnis bezogen.
             tool_path = PROJECT_DIR / tool_path
 
-        # Löst den Pfad vollständig auf und speichert ihn zurück.
-        tool["path"] = tool_path.resolve()
+        # Speichert den vollständig aufgelösten Pfad.
+        tool_path = tool_path.resolve()
+        tool["path"] = tool_path
 
-        # Liest den optionalen Parameter allow_manual_stop.
-        # Standardmäßig ist das manuelle Beenden nicht erlaubt.
+        # Prüft, ob die Datei existiert und eine Datei ist.
+        if not tool_path.exists():
+            tool["_path_valid"] = False
+            warnings.append(
+                f"Tool '{tool['name']}' wurde nicht gefunden: {tool_path}"
+            )
+        elif not tool_path.is_file():
+            tool["_path_valid"] = False
+            warnings.append(
+                f"Der Pfad von Tool '{tool['name']}' ist keine Datei: {tool_path}"
+            )
+        else:
+            tool["_path_valid"] = True
+
+        # Prüft den optionalen Parameter allow_manual_stop.
         allow_manual_stop = tool.get("allow_manual_stop", False)
 
-        # Prüft, ob der Parameter tatsächlich einen Boolean enthält.
         if not isinstance(allow_manual_stop, bool):
             raise ValueError(
                 f"Ungültiger Wert für allow_manual_stop "
@@ -178,52 +178,51 @@ def load_config():
                 "Erlaubt sind nur true oder false."
             )
 
-        # Speichert den geprüften Wert im Tool-Eintrag.
         tool["allow_manual_stop"] = allow_manual_stop
 
     # Prüft, ob alle Skripte und Tools eindeutige Namen besitzen.
-    # Die Prüfung berücksichtigt auch Groß- und Kleinschreibung.
     used_names = set()
 
-    # Führt Skripte und Tools für die Namensprüfung zusammen.
     all_entries = scripts + tools
 
-    # Prüft jeden Eintrag auf einen gültigen und eindeutigen Namen.
     for entry in all_entries:
 
-        # Prüft zuerst den Datentyp des Namens.
         if not isinstance(entry["name"], str):
             raise ValueError(
                 "Skript- und Tool-Namen müssen gültige Texte sein."
             )
 
-        # Entfernt überflüssige Leerzeichen.
         name = entry["name"].strip()
 
-        # Prüft, ob der Name nach dem Bereinigen noch Inhalt besitzt.
         if not name:
             raise ValueError(
                 "Skript- und Tool-Namen dürfen nicht leer sein."
             )
 
-        # Vereinheitlicht den Namen für den Vergleich.
         normalized_name = name.casefold()
 
-        # Prüft, ob dieser Name bereits verwendet wird.
         if normalized_name in used_names:
             raise ValueError(
                 f"Der Name '{name}' ist mehrfach vergeben. "
                 "Skript- und Tool-Namen müssen eindeutig sein."
             )
 
-        # Speichert den Namen für die weiteren Prüfungen.
         used_names.add(normalized_name)
-
-        # Übernimmt den bereinigten Namen in die Konfiguration.
         entry["name"] = name
 
-    # Speichert die geprüften Tools zurück in der Gesamtkonfiguration.
-    config["tools"] = tools
+    # Entfernt Einträge mit ungültigen Dateipfaden aus den Menüs.
+    # Die Warnungen bleiben für das System-Log erhalten.
+    config["scripts"] = [
+        script for script in scripts
+        if script["_path_valid"]
+    ]
 
-    # Gibt die vollständige Konfiguration an den Aufrufer zurück.
+    config["tools"] = [
+        tool for tool in tools
+        if tool["_path_valid"]
+    ]
+
+    # Speichert die gesammelten Warnungen für die Anwendung.
+    config["_warnings"] = warnings
+
     return config
