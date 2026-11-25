@@ -75,18 +75,6 @@
 
 
 /* ==========================================
-   Buttons
-   ========================================== */
-
-/* Einheitliche Breite der Menü-Buttons. */
-#scripts-menu Button,
-#additional-menu Button {
-    width: 100%;
-    margin-bottom: 1;
-}
-
-
-/* ==========================================
    Tab-Leiste
    ========================================== */
 
