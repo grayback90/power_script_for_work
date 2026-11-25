@@ -2,6 +2,18 @@
 # Importiert datetime für die Zeitstempel im Log.
 from datetime import datetime
 
+# Erstellt JSON-Daten aus Python-Dictionaries.
+import json
+
+# Ermöglicht das Versenden von HTTP-Anfragen.
+import urllib.request
+
+# Ermöglicht die Behandlung von HTTP-Fehlern.
+import urllib.error
+
+# Ermöglicht die Ausführung blockierender Funktionen im Hintergrund.
+import asyncio
+
 from rich.text import Text
 
 # Importiert die benötigten Bestandteile von Textual.
@@ -57,6 +69,9 @@ class PowerScriptApp(App):
 
         # Speichert die zusätzlich konfigurierten Tools.
         self.tools = self.config.get("tools", [])
+
+        # Speichert die zusätzlich konfigurierten POST-Aktionen.
+        self.post_requests = self.config.get("post_requests", [])
 
         # Führt Skripte und Tools für die Prozessverwaltung zusammen.
         self.all_scripts = self.scripts + self.tools
@@ -224,10 +239,22 @@ class PowerScriptApp(App):
                                         id=f"tool-button-{number}",
                                     )
 
-                            # Platz für die konfigurierten POST-Aktionen.
+
+                            # Zeigt die konfigurierten POST-Aktionen an.
                             if show_post_requests:
+
                                 yield Static("[b]POST-Aktionen[/b]")
 
+                                # Erstellt für jede POST-Aktion einen eigenen Button.
+                                for number, post_request in enumerate(
+                                    self.post_requests,
+                                    start=1
+                                ):
+
+                                    yield Button(
+                                        post_request["name"],
+                                        id=f"post-request-button-{number}",
+                                    )
 
                 # Unterer Bereich für allgemeine Systemfunktionen.
                 with Vertical(id="system-menu"):
@@ -488,6 +515,22 @@ class PowerScriptApp(App):
 
             self.action_clear_log()
 
+        
+        # Prüft, ob eine POST-Aktion angeklickt wurde.
+        elif button_id and button_id.startswith("post-request-button-"):
+
+            # Ermittelt die Nummer der ausgewählten POST-Aktion.
+            number = int(button_id.replace("post-request-button-", ""))
+
+            # Holt die zugehörige POST-Aktion aus der Konfiguration.
+            post_request = self.post_requests[number - 1]
+
+            # Startet den POST-Aufruf im Hintergrund.
+            self.run_worker(
+                self.send_post_request(post_request)
+            )
+
+
         # Prüft, ob der Beenden-Button angeklickt wurde.
         elif button_id == "quit-button":
 
@@ -602,6 +645,86 @@ class PowerScriptApp(App):
 
         # Entfernt alle bisherigen Einträge im System-Tab.
         self.query_one("#system-log", RichLog).clear()
+
+    async def send_post_request(self, post_request: dict) -> None:
+        """Sendet eine konfigurierte POST-Anfrage."""
+
+        # Liest die Daten der POST-Aktion.
+        url = post_request["url"]
+        headers = post_request.get("headers", {})
+        payload = post_request.get("payload", {})
+
+        # Wandelt den Payload in JSON um.
+        json_data = json.dumps(payload).encode("utf-8")
+
+        # Erstellt die HTTP-Anfrage.
+        request = urllib.request.Request(
+            url,
+            data=json_data,
+            headers=headers,
+            method="POST",
+        )
+
+        # Meldet den Beginn der Anfrage.
+        self.write_log(
+            "SYSTEM",
+            f"{post_request['name']}: POST-Anfrage wird gesendet."
+        )
+
+        try:
+            # Führt den HTTP-Aufruf außerhalb des UI-Threads aus.
+            status_code, response_body = await asyncio.to_thread(
+                self._execute_post_request,
+                request,
+            )
+
+            # Meldet das Ergebnis.
+            self.write_log(
+                "SYSTEM",
+                f"{post_request['name']}: HTTP {status_code}"
+            )
+
+            # Zeigt die Serverantwort an, sofern vorhanden.
+            if response_body:
+                self.write_log(
+                    "SYSTEM",
+                    f"Serverantwort: {response_body}"
+                )
+
+        except Exception as error:
+            # Meldet einen Fehler beim Versenden.
+            self.write_log(
+                "ERROR",
+                f"{post_request['name']}: {error}"
+            )
+
+    def _execute_post_request(self, request):
+        """Führt den HTTP-Aufruf aus und liefert Status und Antwort zurück."""
+
+        try:
+            # Sendet die Anfrage mit einem Timeout von 30 Sekunden.
+            with urllib.request.urlopen(request, timeout=30) as response:
+
+                # Liest die Antwort des Servers.
+                response_body = response.read().decode("utf-8", errors="replace")
+
+                return response.status, response_body
+
+        except urllib.error.HTTPError as error:
+
+            # Liest auch den Antworttext bei HTTP-Fehlern.
+            response_body = error.read().decode("utf-8", errors="replace")
+
+            raise RuntimeError(
+                f"HTTP {error.code}: {response_body}"
+            ) from error
+
+        except urllib.error.URLError as error:
+
+            # Gibt die Ursache des Verbindungsfehlers weiter.
+            raise RuntimeError(
+                f"Verbindungsfehler: {error.reason}"
+            ) from error
 
     async def start_script_with_tab(self, script: dict) -> None:
         """Erstellt den Tab und startet anschließend das Skript."""

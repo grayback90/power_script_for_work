@@ -186,8 +186,61 @@ def load_config():
         # Speichert den geprüften Wert im Tool-Eintrag.
         tool["allow_manual_stop"] = allow_manual_stop
 
-    # Speichert die geprüften Tools zurück in der Gesamtkonfiguration.
+
+    # Speichert die geprüften Tools zurück in die Gesamtkonfiguration.
     config["tools"] = tools
+
+    # Holt alle konfigurierten POST-Aktionen.
+    post_requests = config.get("post_requests", [])
+
+    # Prüft, ob der Eintrag eine Liste ist.
+    if not isinstance(post_requests, list):
+        raise ValueError(
+            "Der Bereich 'post_requests' muss eine gültige Liste sein."
+        )
+
+    # Geht alle POST-Aktionen einzeln durch.
+    for index, post_request in enumerate(post_requests, start=1):
+
+        # Jeder Eintrag muss ein Dictionary sein.
+        if not isinstance(post_request, dict):
+            raise ValueError(
+                f"POST-Aktion {index} ist kein gültiger Eintrag."
+            )
+
+        # Prüft, ob ein Name vorhanden ist.
+        if not post_request.get("name"):
+            raise ValueError(
+                f"POST-Aktion {index} hat keinen Namen."
+            )
+
+        # Prüft, ob eine URL vorhanden ist.
+        if not post_request.get("url"):
+            raise ValueError(
+                f"POST-Aktion '{post_request['name']}' hat keine URL."
+            )
+
+        # Prüft die Header.
+        headers = post_request.get("headers", {})
+
+        if not isinstance(headers, dict):
+            raise ValueError(
+                f"Die Header der POST-Aktion '{post_request['name']}' "
+                "müssen ein Dictionary sein."
+            )
+
+        # Prüft den Payload.
+        payload = post_request.get("payload", {})
+
+        if not isinstance(payload, dict):
+            raise ValueError(
+                f"Der Payload der POST-Aktion '{post_request['name']}' "
+                "muss ein Dictionary sein."
+            )
+
+    # Speichert die geprüften POST-Aktionen zurück.
+    config["post_requests"] = post_requests
 
     # Gibt die vollständige Konfiguration an den Aufrufer zurück.
     return config
+
