@@ -126,26 +126,47 @@ class PowerScriptApp(App):
         # Geht alle konfigurierten Skripte durch.
         for number, script in enumerate(self.scripts, start=1):
 
-            # Ermittelt den passenden Button.
-            button = self.query_one(
-                f"#script-button-{number}",
-                Button,
-            )
+            # Aktualisiert die Buttons der Skripte.
+            for number, script in enumerate(self.scripts, start=1):
+                self.update_menu_button(
+                    script,
+                    f"#script-button-{number}",
+                    status_variants,
+                )
 
-            # Liest den aktuellen Status des Skripts.
-            status = self.script_status[script["name"]]
+            # Aktualisiert die Buttons der Tools.
+            for number, tool in enumerate(self.tools, start=1):
+                self.update_menu_button(
+                    tool,
+                    f"#tool-button-{number}",
+                    status_variants,
+                )
 
-            # Erstellt die neue Beschriftung.
-            label = self.build_script_button_label(script["name"])
+    def update_menu_button(
+        self,
+        item: dict,
+        button_id: str,
+        status_variants: dict,
+    ) -> None:
+        """Aktualisiert Beschriftung und Farbe eines Menü-Buttons."""
 
-            # Aktualisiert die Beschriftung.
-            button.label = label
+        # Ermittelt den passenden Button.
+        button = self.query_one(button_id, Button)
 
-            # Ändert die Farbe entsprechend dem Status.
-            button.variant = status_variants.get(status, "default")
+        # Liest den aktuellen Status des Eintrags.
+        status = self.script_status[item["name"]]
 
-            # Aktualisiert die Darstellung und Größe.
-            button.refresh(layout=True)
+        # Erstellt die neue Beschriftung.
+        label = self.build_script_button_label(item["name"])
+
+        # Aktualisiert die Beschriftung.
+        button.label = label
+
+        # Ändert die Farbe entsprechend dem Status.
+        button.variant = status_variants.get(status, "default")
+
+        # Aktualisiert die Darstellung und Größe.
+        button.refresh(layout=True)
 
     def set_script_status(self, name: str, status: str) -> None:
         """Ändert den Status eines Skripts und aktualisiert das Menü."""
@@ -365,14 +386,28 @@ class PowerScriptApp(App):
         # Ermittelt die ID des angeklickten Buttons.
         button_id = event.button.id
 
-        # Prüft, ob ein Skript-Button angeklickt wurde.
-        if button_id and button_id.startswith("script-button-"):
+        # Prüft, ob ein Skript- oder Tool-Button angeklickt wurde.
+        if button_id and (
+            button_id.startswith("script-button-")
+            or button_id.startswith("tool-button-")
+        ):
 
-            # Ermittelt die Nummer aus der Button-ID.
-            number = int(button_id.replace("script-button-", ""))
+            # Ermittelt, ob ein Skript oder ein Tool ausgewählt wurde.
+            if button_id.startswith("script-button-"):
 
-            # Holt das zugehörige Skript aus der Konfiguration.
-            script = self.scripts[number - 1]
+                # Ermittelt die Nummer des Skript-Buttons.
+                number = int(button_id.replace("script-button-", ""))
+
+                # Holt das zugehörige Skript aus der Konfiguration.
+                script = self.scripts[number - 1]
+
+            else:
+
+                # Ermittelt die Nummer des Tool-Buttons.
+                number = int(button_id.replace("tool-button-", ""))
+
+                # Holt das zugehörige Tool aus der Konfiguration.
+                script = self.tools[number - 1]
 
             # Liest den Namen des ausgewählten Skripts.
             script_name = script["name"]
