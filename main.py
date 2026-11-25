@@ -55,6 +55,12 @@ class PowerScriptApp(App):
         # Speichert die konfigurierten Skripte.
         self.scripts = self.config["scripts"]
 
+        # Speichert die zusätzlich konfigurierten Tools.
+        self.tools = self.config.get("tools", [])
+
+        # Führt Skripte und Tools für die Prozessverwaltung zusammen.
+        self.all_scripts = self.scripts + self.tools
+
         # Erstellt die Verwaltung unserer Hintergrundprozesse.
         self.script_manager = ScriptManager()
 
@@ -76,9 +82,10 @@ class PowerScriptApp(App):
 
         # Speichert den aktuellen Status jedes konfigurierten Skripts.
         # Beim Programmstart ist zunächst jedes Skript ausgeschaltet.
+        # Speichert den Status aller Skripte und Tools.
         self.script_status = {
             script["name"]: "AUS"
-            for script in self.scripts
+            for script in self.all_scripts
         }
 
     def build_script_button_label(self, script_name: str) -> Text:
@@ -192,9 +199,17 @@ class PowerScriptApp(App):
 
                 with Vertical(id="additional-menu"):
 
-                    # Platz für die konfigurierten Tools.
+                    # Erstellt für jedes konfigurierte Tool einen eigenen Button.
                     if show_tools:
+
                         yield Static("[b]Tools[/b]")
+
+                        for number, tool in enumerate(self.tools, start=1):
+
+                            yield Button(
+                                tool["name"],
+                                id=f"tool-button-{number}",
+                            )
 
                     # Platz für die konfigurierten POST-Aktionen.
                     if show_post_requests:
