@@ -210,8 +210,6 @@ class PowerScriptApp(App):
                         with Vertical(id="additional-menu"):
 
                             # Erstellt für jedes konfigurierte Tool einen eigenen Button.
-                            yield Static("[b]Tools[/b]")
-
                             for number, tool in enumerate(self.tools, start=1):
 
                                 yield Button(
@@ -363,18 +361,30 @@ class PowerScriptApp(App):
         # Aktiviert den neu erstellten Tab.
         self.tabs.active = tab_id
 
+
     def write_log(self, source: str, message: str) -> None:
         """Schreibt eine formatierte Nachricht in das passende Log."""
 
         # Ermittelt die aktuelle Uhrzeit.
         time = datetime.now().strftime("%H:%M:%S")
 
-        # Erstellt den formatierten Kopf der Logzeile.
-        line = Text.from_markup(
-            f"[dim]{time}[/dim] | [cyan]{source:<8}[/cyan] | "
-        )
+        # Legt die Farbe der Nachrichtenquelle fest.
+        if source == "SYSTEM":
+            source_style = "bold blue"
+        elif source == "ERROR":
+            source_style = "bold red"
+        else:
+            source_style = "bold cyan"
 
-        # Wandelt ANSI-Farbsequenzen der Skriptausgabe in Rich-Text um.
+        # Erstellt den formatierten Kopf der Logzeile.
+        line = Text()
+        line.append(time, style="dim")
+        line.append("  |  ", style="dim")
+        line.append(f"{source:<8}", style=source_style)
+        line.append(" | ", style="dim")
+
+        # Wandelt ANSI-Farbsequenzen der Skriptausgabe
+        # in Rich-Text um und hängt sie an die Logzeile an.
         line.append_text(Text.from_ansi(message))
 
         # Systemmeldungen und Fehler gehören in den System-Tab.

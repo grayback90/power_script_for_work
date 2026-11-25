@@ -1,66 +1,9 @@
-/* Linke Spalte mit den Skripten. */
-#scripts-menu {
-    width: 25;
-    border: round cyan;
-    padding: 1 2;
-}
 
-/* Rechte Spalte mit zusätzlichen Funktionen. */
-#additional-menu {
-    width: 25;
-    border: round green;
-    padding: 1 2;
-}
+/* ==========================================
+   Grundlayout
+   ========================================== */
 
-#log {
-    border: round yellow;
-    padding: 0 1;
-}
-
-/* Das Log nutzt den verfügbaren Platz im Skript-Tab. */
-.script-log {
-    height: 1fr;
-}
-
-/* Die Eingabezeile erhält eine feste Höhe. */
-.script-input {
-    height: 3;
-}
-
-
-/* Macht die Tab-Leiste etwas höher. */
-#script-tabs > Tabs {
-    height: 3;
-}
-
-/* Vergrößert die einzelnen Tabs. */
-#script-tabs > Tabs > Tab {
-    height: 3;
-    padding: 0 3;
-    content-align: center middle;
-    text-style: bold;
-}
-
-/* Erste Tab-Farbe: Blau. */
-#script-tabs Tab.tab-color-blue {
-    background: #245477;
-    color: white;
-}
-
-/* Zweite Tab-Farbe: Türkis. */
-#script-tabs Tab.tab-color-teal {
-    background: #17665f;
-    color: white;
-}
-
-/* Aktiver Tab: deutlich hellere Darstellung. */
-#script-tabs Tab.-active {
-    background: #d49b35;
-    color: black;
-    text-style: bold;
-}
-
-/* Linker Gesamtbereich für die Menüspalten. */
+/* Linker Gesamtbereich für die Menüs. */
 #menu-area {
     width: 50;
 }
@@ -75,22 +18,49 @@
     height: 1fr;
 }
 
-/* System-Bereich kompakt halten und Inhalt zentrieren. */
+
+/* ==========================================
+   Menübereiche
+   ========================================== */
+
+/* Gemeinsame Gestaltung der beiden Menüspalten. */
+#scripts-menu,
+#additional-menu {
+    width: 25;
+    padding: 1 2;
+    align: center top;
+    border: round #526777;
+}
+
+/* Überschriften der Menübereiche. */
+#scripts-menu {
+    border: round #397b91;
+}
+
+#additional-menu {
+    border: round #397b91;
+}
+
+
+/* ==========================================
+   Systembereich
+   ========================================== */
+
 #system-menu {
     height: auto;
     min-height: 5;
     max-height: 7;
-    border: round yellow;
+    border: round #b99a50;
     padding: 1 2;
     align: center middle;
 }
 
-/* Buttons im System-Bereich nicht unnötig verbreitern. */
+/* System-Buttons kompakt halten. */
 #system-menu Button {
     width: auto;
 }
 
-/* Abstand zwischen den nebeneinanderliegenden Buttons. */
+/* Anordnung der System-Buttons. */
 #system-menu Horizontal {
     width: auto;
     height: auto;
@@ -103,8 +73,129 @@
     margin: 0 1;
 }
 
-/* Buttons innerhalb der beiden Menüspalten zentrieren. */
-#scripts-menu,
-#additional-menu {
-    align: center top;
+
+/* ==========================================
+   Buttons
+   ========================================== */
+
+/* Einheitliche Breite der Menü-Buttons. */
+#scripts-menu Button,
+#additional-menu Button {
+    width: 100%;
+    margin-bottom: 1;
+}
+
+
+/* ==========================================
+   Tab-Leiste
+   ========================================== */
+
+/* Tab-Leiste etwas höher gestalten. */
+#script-tabs > Tabs {
+    height: 3;
+}
+
+/* Einheitliche Darstellung aller Tabs. */
+#script-tabs > Tabs > Tab {
+    height: 3;
+    padding: 0 3;
+    content-align: center middle;
+    text-style: bold;
+}
+
+/* Dezente blaue Tab-Farbe. */
+#script-tabs Tab.tab-color-blue {
+    background: #29485c;
+    color: #dce7ed;
+}
+
+/* Dezente türkise Tab-Farbe. */
+#script-tabs Tab.tab-color-teal {
+    background: #28534f;
+    color: #dcebe8;
+}
+
+/* Aktiver Tab. */
+#script-tabs Tab.-active {
+    background: #a88b4e;
+    color: #111820;
+    text-style: bold;
+}
+
+
+/* ==========================================
+   Log-Fenster
+   ========================================== */
+
+/* System-Log und Skript-Logs. */
+#system-log,
+.script-log {
+    border: round #526777;
+    padding: 0 1;
+}
+
+/* Das Log nutzt den verfügbaren Platz im Skript-Tab. */
+.script-log {
+    height: 1fr;
+}
+
+
+/* ==========================================
+   Eingabezeile
+   ========================================== */
+
+/* Eingabezeile unterhalb des Skript-Logs. */
+.script-input {
+    height: 3;
+    margin-top: 1;
+    border: round #526777;
+    background: #202d37;
+}
+
+/* Hervorhebung bei aktiver Eingabe. */
+.script-input:focus {
+    border: round #397b91;
+}
+
+
+/* ==========================================
+   Menü-Button Gestaltung
+   ========================================== */
+
+/* Grunddarstellung der Skript- und Tool-Buttons. */
+#scripts-menu Button,
+#additional-menu Button {
+    height: 3;
+    width: 100%;
+    margin-bottom: 1;
+    border: none;
+    background: #263541;
+    color: #dce5eb;
+    text-style: none;
+}
+
+/* Darstellung beim Darüberfahren mit der Maus. */
+#scripts-menu Button:hover,
+#additional-menu Button:hover {
+    background: #354b5b;
+    color: white;
+}
+
+/* Darstellung bei gedrücktem Button. */
+#scripts-menu Button:focus {
+    border: none;
+}
+
+/* Status RUNNING. */
+#scripts-menu Button.-success,
+#additional-menu Button.-success {
+    background: #244b3b;
+    color: #d8f2e3;
+}
+
+/* Status WAITING. */
+#scripts-menu Button.-warning,
+#additional-menu Button.-warning {
+    background: #55452b;
+    color: #ffedc7;
 }
