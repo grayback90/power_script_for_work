@@ -108,10 +108,3 @@
 #additional-menu {
     align: center top;
 }
-
-/* Alle Menü-Buttons mit abgerundeten Ecken. */
-#scripts-menu Button,
-#additional-menu Button,
-#system-menu Button {
-    border: round;
-}
