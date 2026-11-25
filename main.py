@@ -658,36 +658,6 @@ class PowerScriptApp(App):
         for input_id in input_ids:
             self.script_input_names.pop(input_id, None)
 
-    def on_key(self, event) -> None:
-        """Verarbeitet die Tastatureingaben für die Skriptauswahl."""
-
-        # Prüft, ob eine Ziffer zwischen 1 und 9 gedrückt wurde.
-        if event.key in ("1", "2", "3", "4", "5", "6", "7", "8", "9"):
-
-            # Wandelt die gedrückte Taste in eine Zahl um.
-            number = int(event.key)
-
-            # Prüft, ob ein Skript mit dieser Nummer existiert.
-            if number <= len(self.scripts):
-
-                # Holt das ausgewählte Skript.
-                script = self.scripts[number - 1]
-
-                # Startet die Tab-Erstellung und den Skriptstart.
-                # Die Anwendung bleibt währenddessen bedienbar.
-                self.run_worker(self.start_script_with_tab(script))
-
-            else:
-                # Meldet eine ungültige Skriptnummer.
-                self.write_log(
-                    "ERROR",
-                    f"Kein Skript mit Nummer {number} konfiguriert."
-                )
-
-            # Verhindert eine weitere Verarbeitung der Taste.
-            event.stop()
-
-
 # Startet die Anwendung, wenn main.py direkt ausgeführt wird.
 if __name__ == "__main__":
     PowerScriptApp().run()
