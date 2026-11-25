@@ -2,6 +2,19 @@
 
 title = "Config File"
 
+# ==========================================
+# Allgemeine Einstellungen
+# ==========================================
+
+[settings]
+show_tools = true
+show_post_requests = true
+
+
+# ==========================================
+# Skripte
+# ==========================================
+
 # [[scripts]]
 # name = "Test 1"
 # path = "DEIN_PFAD/power_script_for_work/test-scripts/test.cmd"
@@ -15,3 +28,40 @@ title = "Config File"
 [[scripts]]
 name = "Beispiel für relativen Pfad"
 path = "scripts/example.cmd"
+
+
+# ==========================================
+# Tools
+# ==========================================
+
+[[tools]]
+name = "Beispiel für relativen Pfad"
+path = "scripts/example.cmd"
+
+
+# ==========================================
+# POST-Aktionen
+# ==========================================
+
+[[post_requests]]
+name = "Testdaten laden"
+url = "https://example.com/api/testdata"
+
+[post_requests.headers]
+Content-Type = "application/json"
+
+[post_requests.payload]
+environment = "local"
+action = "load_testdata"
+enabled = true
+
+
+[[post_requests]]
+name = "Testdaten zurücksetzen"
+url = "https://example.com/api/reset"
+
+[post_requests.headers]
+Content-Type = "application/json"
+
+[post_requests.payload]
+action = "reset"
