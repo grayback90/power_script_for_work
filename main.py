@@ -186,54 +186,84 @@ class PowerScriptApp(App):
         show_tools = settings["show_tools"]
         show_post_requests = settings["show_post_requests"]
 
-        # Ordnet die beiden Menüspalten und den Tab-Bereich nebeneinander an.
+
+        # Ordnet den gesamten Menübereich und den Tab-Bereich nebeneinander an.
         with Horizontal():
 
-            # Linke Spalte: Skripte.
-            with Vertical(id="scripts-menu"):
+            # Linker Bereich mit den Menüspalten und dem System-Bereich.
+            with Vertical(id="menu-area"):
 
-                # Erstellt für jedes konfigurierte Skript einen Button.
-                for number, script in enumerate(self.scripts, start=1):
+                # Obere Zeile mit Skripten und zusätzlichen Funktionen.
+                with Horizontal():
 
-                    yield Button(
-                        self.build_script_button_label(script["name"]),
-                        id=f"script-button-{number}",
-                    )
+                    # Linke Spalte: Skripte.
+                    with Vertical(id="scripts-menu"):
 
-                # Button zum Leeren des System-Logs.
-                yield Button(
-                    "Clear system log",
-                    id="clear-log-button",
-                )
-
-                # Button zum Beenden der Anwendung.
-                yield Button(
-                    "Quit",
-                    id="quit-button",
-                )
-
-            # Rechte Spalte nur anzeigen, wenn mindestens ein Bereich aktiv ist.
-            if show_tools or show_post_requests:
-
-                with Vertical(id="additional-menu"):
-
-                    # Erstellt für jedes konfigurierte Tool einen eigenen Button.
-                    if show_tools:
-
-                        yield Static("[b]Tools[/b]")
-
-                        for number, tool in enumerate(self.tools, start=1):
+                        # Erstellt für jedes konfigurierte Skript einen Button.
+                        for number, script in enumerate(self.scripts, start=1):
 
                             yield Button(
-                                self.build_script_button_label(tool["name"]),
-                                id=f"tool-button-{number}",
+                                self.build_script_button_label(script["name"]),
+                                id=f"script-button-{number}",
                             )
 
-                    # Platz für die konfigurierten POST-Aktionen.
-                    if show_post_requests:
-                        yield Static("[b]POST-Aktionen[/b]")
+                    # Rechte Spalte nur anzeigen, wenn mindestens ein Bereich aktiv ist.
+                    if show_tools or show_post_requests:
 
-            # Erstellt den Tab-Container.
+                        with Vertical(id="additional-menu"):
+
+                            # Erstellt für jedes konfigurierte Tool einen eigenen Button.
+                            if show_tools:
+
+                                yield Static("[b]Tools[/b]")
+
+                                for number, tool in enumerate(self.tools, start=1):
+
+                                    yield Button(
+                                        self.build_script_button_label(tool["name"]),
+                                        id=f"tool-button-{number}",
+                                    )
+
+                            # Platz für die konfigurierten POST-Aktionen.
+                            if show_post_requests:
+                                yield Static("[b]POST-Aktionen[/b]")
+
+
+                # Unterer Bereich für allgemeine Systemfunktionen.
+                with Vertical(id="system-menu"):
+
+                    # Wenn beide Menübereiche angezeigt werden,
+                    # stehen die System-Buttons nebeneinander.
+                    if show_tools or show_post_requests:
+
+                        with Horizontal():
+
+                            yield Button(
+                                "Clear system log",
+                                id="clear-log-button",
+                            )
+
+                            yield Button(
+                                "Quit",
+                                id="quit-button",
+                            )
+
+                    # Wenn nur Skripte angezeigt werden,
+                    # stehen die System-Buttons untereinander.
+                    else:
+
+                        yield Button(
+                            "Clear system log",
+                            id="clear-log-button",
+                        )
+
+                        yield Button(
+                            "Quit",
+                            id="quit-button",
+                        )
+
+
+            # Erstellt den Tab-Container rechts neben dem Menübereich.
             with TabbedContent(id="script-tabs"):
 
                 # Der System-Tab ist von Anfang an vorhanden.
@@ -241,6 +271,7 @@ class PowerScriptApp(App):
 
                     # Hier erscheinen allgemeine Meldungen und Fehler.
                     yield RichLog(id="system-log", markup=True)
+
 
         # Erstellt die Fußzeile.
         yield Footer()
@@ -257,6 +288,12 @@ class PowerScriptApp(App):
 
         # Setzt den Rahmen-Titel der linken Spalte.
         self.query_one("#scripts-menu", Vertical).border_title = "Skripte"
+
+        # Setzt den Rahmen-Titel des System-Bereichs.
+        self.query_one("#system-menu", Vertical).border_title = "System"
+
+        # Verleiht dem System-Bereich einen gelben Rahmen.
+        self.query_one("#system-menu", Vertical).styles.border = ("round", "yellow")
 
         # Setzt den Rahmen-Titel der rechten Spalte, sofern sie existiert.
         if self.config["settings"]["show_tools"] or self.config["settings"]["show_post_requests"]:

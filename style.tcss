@@ -59,3 +59,59 @@
     color: black;
     text-style: bold;
 }
+
+/* Linker Gesamtbereich für die Menüspalten. */
+#menu-area {
+    width: 50;
+}
+
+/* Der Tab-Bereich nutzt den restlichen Platz. */
+#script-tabs {
+    width: 1fr;
+}
+
+/* Obere Menüzeile mit Skripten und Weiteres. */
+#menu-area > Horizontal {
+    height: 1fr;
+}
+
+/* System-Bereich kompakt halten und Inhalt zentrieren. */
+#system-menu {
+    height: auto;
+    min-height: 5;
+    max-height: 7;
+    border: round yellow;
+    padding: 1 2;
+    align: center middle;
+}
+
+/* Buttons im System-Bereich nicht unnötig verbreitern. */
+#system-menu Button {
+    width: auto;
+}
+
+/* Abstand zwischen den nebeneinanderliegenden Buttons. */
+#system-menu Horizontal {
+    width: auto;
+    height: auto;
+    align: center middle;
+    padding: 0 1;
+    layout: horizontal;
+}
+
+#system-menu Horizontal Button {
+    margin: 0 1;
+}
+
+/* Buttons innerhalb der beiden Menüspalten zentrieren. */
+#scripts-menu,
+#additional-menu {
+    align: center top;
+}
+
+/* Alle Menü-Buttons mit abgerundeten Ecken. */
+#scripts-menu Button,
+#additional-menu Button,
+#system-menu Button {
+    border: round;
+}
