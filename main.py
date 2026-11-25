@@ -507,7 +507,7 @@ class PowerScriptApp(App):
         # Holt den zugehörigen Prozess.
         process = self.script_manager.processes.get(script_name)
 
-        # Prüft, ob der Prozess noch läuft und Eingaben annehmen kann.
+        # Prüft, ob der Prozess noch läuft.
         if process is None or process.poll() is not None:
             self.write_log(
                 "ERROR",
@@ -516,9 +516,17 @@ class PowerScriptApp(App):
             event.input.value = ""
             return
 
+        # Prüft, ob die Eingabepipe verfügbar ist.
+        if process.stdin is None or process.stdin.closed:
+            self.write_log(
+                "ERROR",
+                f"{script_name}: Keine Eingabe mehr möglich. Die Verbindung zum Prozess ist geschlossen."
+            )
+            event.input.value = ""
+            return
+
         try:
             # Sendet den eingegebenen Text samt Zeilenumbruch.
-            # Der Zeilenumbruch entspricht dem Drücken der Enter-Taste.
             process.stdin.write(event.value + "\n")
 
             # Stellt sicher, dass die Eingabe sofort übertragen wird.
@@ -533,7 +541,7 @@ class PowerScriptApp(App):
             # Nach einer Eingabe kann das Skript weiterlaufen.
             self.set_script_status(script_name, "RUNNING")
 
-        except (OSError, ValueError) as error:
+        except (BrokenPipeError, OSError, ValueError) as error:
             # Meldet Probleme beim Übertragen der Eingabe.
             self.write_log(
                 "ERROR",
