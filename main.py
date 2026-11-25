@@ -114,7 +114,7 @@ class PowerScriptApp(App):
         return label
 
     def refresh_menu(self) -> None:
-        """Aktualisiert Beschriftung und Farbe aller Skript-Buttons."""
+        """Aktualisiert Beschriftung und Farbe aller Menü-Buttons."""
 
         # Legt die passende Button-Variante für jeden Status fest.
         status_variants = {
@@ -123,24 +123,21 @@ class PowerScriptApp(App):
             "WAITING": "warning",
         }
 
-        # Geht alle konfigurierten Skripte durch.
+        # Aktualisiert die Buttons der Skripte.
         for number, script in enumerate(self.scripts, start=1):
+            self.update_menu_button(
+                script,
+                f"#script-button-{number}",
+                status_variants,
+            )
 
-            # Aktualisiert die Buttons der Skripte.
-            for number, script in enumerate(self.scripts, start=1):
-                self.update_menu_button(
-                    script,
-                    f"#script-button-{number}",
-                    status_variants,
-                )
-
-            # Aktualisiert die Buttons der Tools.
-            for number, tool in enumerate(self.tools, start=1):
-                self.update_menu_button(
-                    tool,
-                    f"#tool-button-{number}",
-                    status_variants,
-                )
+        # Aktualisiert die Buttons der Tools.
+        for number, tool in enumerate(self.tools, start=1):
+            self.update_menu_button(
+                tool,
+                f"#tool-button-{number}",
+                status_variants,
+            )
 
     def update_menu_button(
         self,
@@ -228,7 +225,7 @@ class PowerScriptApp(App):
                         for number, tool in enumerate(self.tools, start=1):
 
                             yield Button(
-                                tool["name"],
+                                self.build_script_button_label(tool["name"]),
                                 id=f"tool-button-{number}",
                             )
 
