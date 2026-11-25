@@ -101,7 +101,7 @@ class ScriptManager:
             # Startet den Hintergrund-Thread.
             reader.start()
 
-        except OSError as error:
+        except (OSError, ValueError, subprocess.SubprocessError) as error:
             # Fängt Fehler beim Starten des Prozesses ab.
             self.messages.put(
                 ("error", name, f"Start fehlgeschlagen: {error}")
@@ -191,10 +191,10 @@ class ScriptManager:
                     ("output", name, remaining_text)
                 )
 
-        except OSError as error:
-            # Meldet Probleme beim Lesen der Prozessausgabe.
+        except Exception as error:
+            # Meldet auch unerwartete Probleme beim Lesen der Prozessausgabe.
             self.messages.put(
-                ("error", name, f"Fehler beim Lesen: {error}")
+                ("error", name, f"Fehler beim Lesen der Prozessausgabe: {error}")
             )
 
         finally:
@@ -202,7 +202,7 @@ class ScriptManager:
             try:
                 return_code = process.wait()
 
-            except OSError as error:
+            except Exception as error:
                 self.messages.put(
                     ("error", name, f"Fehler beim Warten auf Prozessende: {error}")
                 )
