@@ -232,6 +232,7 @@ class ScriptManager:
                     ("finished", name, f"Prozess beendet. Exit-Code: {return_code}")
                 )
 
+
     def stop_script(self, name: str) -> bool:
         """Beendet ein freigegebenes Skript einschließlich seiner Unterprozesse."""
 
@@ -242,7 +243,7 @@ class ScriptManager:
         if process is None:
             return False
 
-        # Prüft, ob der Prozess noch läuft.
+        # Prüft, ob der Prozess bereits beendet wurde.
         if process.poll() is not None:
             return False
 
@@ -253,16 +254,50 @@ class ScriptManager:
                 check=True,
                 capture_output=True,
                 text=True,
+                timeout=10,
             )
+
+            # Wartet kurz darauf, dass der Hauptprozess tatsächlich endet.
+            try:
+                process.wait(timeout=5)
+
+            except subprocess.TimeoutExpired:
+                # Prüft erneut, ob der Prozess zwischenzeitlich beendet wurde.
+                if process.poll() is None:
+                    self.messages.put(
+                        ("error", name, "Prozess konnte nicht vollständig beendet werden.")
+                    )
+                    return False
 
             return True
 
         except subprocess.CalledProcessError as error:
-            # Meldet einen Fehler beim Beenden des Prozesses.
+            # Der Prozess könnte währenddessen selbstständig beendet worden sein.
+            if process.poll() is not None:
+                return True
+
+            # Meldet einen tatsächlichen Fehler beim Beenden.
+            error_message = error.stderr.strip() or str(error)
+
             self.messages.put(
-                ("error", name, f"Beenden fehlgeschlagen: {error.stderr}")
+                ("error", name, f"Beenden fehlgeschlagen: {error_message}")
             )
             return False
+
+        except subprocess.TimeoutExpired:
+            # taskkill hat nicht rechtzeitig geantwortet.
+            self.messages.put(
+                ("error", name, "Zeitüberschreitung beim Beenden des Prozesses.")
+            )
+            return False
+
+        except OSError as error:
+            # Fängt beispielsweise Probleme beim Aufruf von taskkill ab.
+            self.messages.put(
+                ("error", name, f"Beenden fehlgeschlagen: {error}")
+            )
+            return False
+
 
     def get_messages(self):
         """Liefert alle aktuell verfügbaren Nachrichten zurück."""
