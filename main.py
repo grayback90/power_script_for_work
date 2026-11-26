@@ -420,6 +420,46 @@ class PowerScriptApp(App):
         else:
             tab_button.add_class("tab-color-blue")
 
+    def get_active_scripts(self) -> list:
+        """Liefert alle Skripte zurück, deren Prozesse noch laufen."""
+
+        active_scripts = []
+
+        # Prüft alle aktuell registrierten Prozesse.
+        for name, process in self.script_manager.processes.items():
+
+            # Ein Prozess mit poll() == None läuft noch.
+            if process.poll() is None:
+                active_scripts.append(name)
+
+        return active_scripts
+
+    def request_quit(self) -> None:
+        """Beendet die Anwendung nur, wenn keine Skripte mehr laufen."""
+
+        active_scripts = self.get_active_scripts()
+
+        # Verhindert das Beenden, solange noch Prozesse aktiv sind.
+        if active_scripts:
+            names = ", ".join(active_scripts)
+
+            self.write_log(
+                "ERROR",
+                f"Beenden nicht möglich. Folgende Skripte laufen noch oder warten auf Eingabe: {names}. "
+                "Bitte warte, bis sie beendet sind, oder stoppe sie über die vorgesehene Funktion."
+            )
+
+            # Wechselt zum System-Log, damit die Warnung sichtbar ist.
+            self.tabs.active = "system-tab"
+            return
+
+        self.exit()
+
+    def action_quit(self) -> None:
+        """Prüft vor dem Beenden, ob noch Skripte aktiv sind."""
+
+        self.request_quit()
+
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Verarbeitet Klicks auf die Menü-Buttons."""
 
@@ -432,22 +472,19 @@ class PowerScriptApp(App):
             or button_id.startswith("tool-button-")
         ):
 
-            # Ermittelt, ob ein Skript oder ein Tool ausgewählt wurde.
+            # Ordnet den Button der passenden Konfigurationsliste zu.
             if button_id.startswith("script-button-"):
-
-                # Ermittelt die Nummer des Skript-Buttons.
-                number = int(button_id.replace("script-button-", ""))
-
-                # Holt das zugehörige Skript aus der Konfiguration.
-                script = self.scripts[number - 1]
-
+                items = self.scripts
+                button_prefix = "script-button-"
             else:
+                items = self.tools
+                button_prefix = "tool-button-"
 
-                # Ermittelt die Nummer des Tool-Buttons.
-                number = int(button_id.replace("tool-button-", ""))
+            # Ermittelt die Nummer des angeklickten Buttons.
+            number = int(button_id.removeprefix(button_prefix))
 
-                # Holt das zugehörige Tool aus der Konfiguration.
-                script = self.tools[number - 1]
+            # Holt das zugehörige Skript oder Tool.
+            script = items[number - 1]
 
             # Liest den Namen des ausgewählten Skripts.
             script_name = script["name"]
@@ -497,7 +534,7 @@ class PowerScriptApp(App):
         # Prüft, ob der Beenden-Button angeklickt wurde.
         elif button_id == "quit-button":
 
-            self.exit()
+            self.request_quit()
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
         """Sendet eine Eingabe an den passenden Hintergrundprozess."""
