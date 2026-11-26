@@ -188,7 +188,10 @@ class PowerScriptApp(App):
         with Horizontal():
 
             # Linker Bereich mit den Menüspalten und dem System-Bereich.
-            with Vertical(id="menu-area"):
+            with Vertical(
+                id="menu-area",
+                classes="tools-visible" if show_tools else "tools-hidden",
+            ):
 
                 # Obere Zeile mit Skripten und zusätzlichen Funktionen.
                 with Horizontal():

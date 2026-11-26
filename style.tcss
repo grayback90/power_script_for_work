@@ -3,9 +3,14 @@
    Grundlayout
    ========================================== */
 
-/* Linker Gesamtbereich für die Menüs. */
-#menu-area {
+/* Linker Gesamtbereich mit aktivierten Tools. */
+#menu-area.tools-visible {
     width: 50;
+}
+
+/* Linker Gesamtbereich ohne zusätzliche Tools. */
+#menu-area.tools-hidden {
+    width: 25;
 }
 
 /* Der Tab-Bereich nutzt den restlichen Platz. */
@@ -49,7 +54,6 @@
 #system-menu {
     height: auto;
     min-height: 5;
-    max-height: 7;
     border: round #b99a50;
     padding: 1 2;
     align: center middle;
