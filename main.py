@@ -591,6 +591,15 @@ class PowerScriptApp(App):
             # Prozess wurde beendet.
             elif message_type == "finished":
 
+                # Prüft, ob inzwischen bereits ein neuer Prozess läuft.
+                current_process = self.script_manager.processes.get(name)
+
+                if current_process is not None and current_process.poll() is None:
+
+                    # Eine verspätete Abschlussmeldung darf den neuen Lauf
+                    # nicht beeinflussen.
+                    continue
+
                 # Setzt den Status wieder auf AUS.
                 self.set_script_status(name, "AUS")
 
@@ -598,8 +607,6 @@ class PowerScriptApp(App):
                 self.write_log("SYSTEM", f"{name}: {message}")
 
                 # Entfernt den Tab nach dem Prozessende.
-                # run_worker führt die asynchrone Methode aus,
-                # ohne die Benutzeroberfläche zu blockieren.
                 self.run_worker(self.remove_script_tab(name))
 
             # Fehler beim Starten oder Ausführen.
@@ -647,6 +654,12 @@ class PowerScriptApp(App):
 
     async def remove_script_tab(self, name: str) -> None:
         """Entfernt den Tab und alle zugehörigen Daten eines Skripts."""
+
+        # Prüft, ob inzwischen bereits ein neuer Prozess läuft.
+        current_process = self.script_manager.processes.get(name)
+
+        if current_process is not None and current_process.poll() is None:
+            return
 
         # Ermittelt die ID des Tabs anhand des Skriptnamens.
         tab_id = self.script_tab_ids.get(name)
