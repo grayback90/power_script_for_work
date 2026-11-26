@@ -13,7 +13,6 @@ from textual.widgets import (
     Header,
     Input,
     RichLog,
-    Static,
     TabbedContent,
     TabPane,
 )
@@ -123,21 +122,19 @@ class PowerScriptApp(App):
             "WAITING": "warning",
         }
 
-        # Aktualisiert die Buttons der Skripte.
-        for number, script in enumerate(self.scripts, start=1):
-            self.update_menu_button(
-                script,
-                f"#script-button-{number}",
-                status_variants,
-            )
+        # Aktualisiert Skript- und Tool-Buttons gemeinsam.
+        menu_groups = [
+            (self.scripts, "script-button-"),
+            (self.tools, "tool-button-"),
+        ]
 
-        # Aktualisiert die Buttons der Tools.
-        for number, tool in enumerate(self.tools, start=1):
-            self.update_menu_button(
-                tool,
-                f"#tool-button-{number}",
-                status_variants,
-            )
+        for items, button_prefix in menu_groups:
+            for number, item in enumerate(items, start=1):
+                self.update_menu_button(
+                    item,
+                    f"#{button_prefix}{number}",
+                    status_variants,
+                )
 
     def update_menu_button(
         self,
@@ -174,6 +171,15 @@ class PowerScriptApp(App):
         # Aktualisiert die sichtbare Menüanzeige.
         self.refresh_menu()
 
+    def create_menu_buttons(self, items: list, button_prefix: str):
+        """Erstellt die Menü-Buttons für Skripte oder Tools."""
+
+        for number, item in enumerate(items, start=1):
+            yield Button(
+                self.build_script_button_label(item["name"]),
+                id=f"{button_prefix}{number}",
+            )
+
     def compose(self) -> ComposeResult:
         """Erstellt die sichtbaren Elemente der Anwendung."""
 
@@ -199,26 +205,22 @@ class PowerScriptApp(App):
                     # Linke Spalte: Skripte.
                     with Vertical(id="scripts-menu"):
 
-                        # Erstellt für jedes konfigurierte Skript einen Button.
-                        for number, script in enumerate(self.scripts, start=1):
-
-                            yield Button(
-                                self.build_script_button_label(script["name"]),
-                                id=f"script-button-{number}",
-                            )
+                        # Erstellt die Buttons für alle Skripte.
+                        yield from self.create_menu_buttons(
+                            self.scripts,
+                            "script-button-",
+                        )
 
                     # Rechte Spalte nur anzeigen, wenn Tools aktiviert sind.
                     if show_tools:
 
                         with Vertical(id="additional-menu"):
 
-                            # Erstellt für jedes konfigurierte Tool einen eigenen Button.
-                            for number, tool in enumerate(self.tools, start=1):
-
-                                yield Button(
-                                    self.build_script_button_label(tool["name"]),
-                                    id=f"tool-button-{number}",
-                                )
+                            # Erstellt die Buttons für alle zusätzlichen Tools.
+                            yield from self.create_menu_buttons(
+                                self.tools,
+                                "tool-button-",
+                            )
 
                 # Unterer Bereich für allgemeine Systemfunktionen.
                 with Vertical(id="system-menu"):
